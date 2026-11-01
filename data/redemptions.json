@@ -1,0 +1,30 @@
+{
+  "redemptions": [
+    {
+      "id": "rdm_1793437715807_83fc47",
+      "referral_code": "REF-CC7C2",
+      "visitor_id": "VIS-10015",
+      "booking_id": "FT-2026-9999",
+      "discount_applied": 10,
+      "status": "CONFIRMED",
+      "redeemed_at": "2026-10-31T09:08:35.355Z",
+      "metadata": {
+        "email": "friend@example.com",
+        "ip": "127.0.0.1"
+      }
+    },
+    {
+      "id": "rdm_1793438796209_61cdaa",
+      "referral_code": "FT-CUZ6W",
+      "visitor_id": "VIS-10018",
+      "booking_id": "FT-2026-8888",
+      "discount_applied": 10,
+      "status": "CONFIRMED",
+      "redeemed_at": "2026-10-31T09:26:36.045Z",
+      "metadata": {
+        "email": "test@example.com",
+        "ip": "127.0.0.1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and metadata",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique Firebase Authentication User ID"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user from Google Auth"
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL to the user's avatar"
+        },
+        "provider": {
+          "type": "string",
+          "description": "Auth provider identifier"
+        },
+        "emailVerified": {
+          "type": "boolean",
+          "description": "Whether the user email is verified"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp or server timestamp when account profile was created"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "description": "ISO timestamp or server timestamp of most recent login"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Unique referral coupon code record and performance counters",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "coupon_code": { "type": "string" },
+        "referral_owner_id": { "type": "string" },
+        "anonymous_referral_id": { "type": "string" },
+        "discount_percentage": { "type": "number" },
+        "status": { "type": "string" },
+        "created_at": { "type": "string" },
+        "expires_at": { "type": "string" },
+        "redeemed_at": { "type": "string" },
+        "campaign_id": { "type": "string" },
+        "shares_count": { "type": "number" },
+        "visits_count": { "type": "number" },
+        "bookings_count": { "type": "number" },
+        "conversions_count": { "type": "number" }
+      },
+      "required": ["id", "coupon_code", "status", "created_at", "expires_at"]
+    },
+    "ReferralEvent": {
+      "title": "ReferralEvent",
+      "description": "Audit record for tracking referral landing visits and bookings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "type": { "type": "string" },
+        "visitor_id": { "type": "string" },
+        "is_self_referral": { "type": "boolean" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "code", "type", "timestamp"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Secure single-use coupon record for atomic redemption",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "discount_percentage": { "type": "number" },
+        "status": { "type": "string" },
+        "is_redeemed": { "type": "boolean" },
+        "redemption_count": { "type": "number" },
+        "max_uses": { "type": "number" },
+        "owner_id": { "type": "string" },
+        "anonymous_referral_id": { "type": "string" },
+        "created_at": { "type": "string" },
+        "expires_at": { "type": "string" },
+        "redeemed_at": { "type": "string" },
+        "redeemed_booking_id": { "type": "string" },
+        "redeemed_by_visitor_id": { "type": "string" },
+        "redeemed_by_email": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "code", "discount_percentage", "status", "created_at", "expires_at"]
+    },
+    "Visitor": {
+      "title": "Visitor",
+      "description": "Smart returning user profile with persistent identity and referral association",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "visitor_uuid": { "type": "string" },
+        "account_id": { "type": "string" },
+        "owned_referral_codes": { "type": "array", "items": { "type": "string" } },
+        "redeemed_coupons": { "type": "array", "items": { "type": "string" } },
+        "created_at": { "type": "string" },
+        "last_seen_at": { "type": "string" }
+      },
+      "required": ["id", "created_at"]
+    },
+    "ReferralRedemption": {
+      "title": "ReferralRedemption",
+      "description": "Authoritative immutable record of a confirmed referral redemption transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "referral_code": { "type": "string" },
+        "visitor_id": { "type": "string" },
+        "booking_id": { "type": "string" },
+        "discount_applied": { "type": "number" },
+        "status": { "type": "string" },
+        "redeemed_at": { "type": "string" }
+      },
+      "required": ["id", "referral_code", "visitor_id", "booking_id", "redeemed_at"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user profile documents, accessible only by the authenticated owner"
+    },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Authoritative persistent referral records and coupons"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Authoritative single-use coupons for atomic transaction-based redemption"
+    },
+    "/referral_events/{eventId}": {
+      "schema": "ReferralEvent",
+      "description": "Referral tracking and landing audit trail"
+    },
+    "/visitors/{visitorId}": {
+      "schema": "Visitor",
+      "description": "Returning visitor identification profiles"
+    },
+    "/referral_redemptions/{redemptionId}": {
+      "schema": "ReferralRedemption",
+      "description": "Authoritative immutable referral redemption ledger"
+    }
+  }
+}

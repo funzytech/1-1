@@ -1,0 +1,6 @@
+{
+  "name": "फंजी टेक",
+  "description": "फंजी टेक (Funzy Tech) - ऑफिशियल होम पेज",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

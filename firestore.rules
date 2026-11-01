@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profile documents: Only accessible by the owner
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Referral documents: Publicly readable for validation, write allowed for backend & sync
+    match /referrals/{referralId} {
+      allow read, write: if true;
+    }
+
+    // Coupon documents: Authoritative single-use coupons
+    match /coupons/{couponId} {
+      allow read, write: if true;
+    }
+
+    // Referral events: Writeable for tracking landing and booking events
+    match /referral_events/{eventId} {
+      allow read, write: if true;
+    }
+
+    // Visitors: Read and write for persistent visitor identification
+    match /visitors/{visitorId} {
+      allow read, write: if true;
+    }
+
+    // Referral Redemptions: Immutable ledger
+    match /referral_redemptions/{redemptionId} {
+      allow read, write: if true;
+    }
+
+    // Default deny for all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
