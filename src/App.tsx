@@ -2112,24 +2112,30 @@ export default function App() {
       setIsEmailVerified(true);
       setOtpError('');
       setOtpMessage('');
-
-      // Auto-sync sign-in state to the main dashboard as requested by user
-      const cleanEmail = myBookingsEmail.trim();
-      const matchedBooking = bookings.find(
-        (b) => b.email.toLowerCase() === cleanEmail.toLowerCase()
-      );
-      const matchedName = matchedBooking?.name || cleanEmail.split('@')[0] || 'Member';
-      setIsLoggedIn(true);
-      setUserName(matchedName);
-      setUserEmail(cleanEmail);
-      try {
-        localStorage.setItem('funzy_tech_auth_logged_in', 'true');
-        localStorage.setItem('funzy_tech_auth_name', matchedName);
-        localStorage.setItem('funzy_tech_auth_email', cleanEmail);
-      } catch {}
+      // Strictly isolated to My Booking flow: do NOT mutate global login session, localStorage, or Main Menu
     } else {
       triggerGlobalError('Required Field');
       setOtpError('Invalid code. Please enter the 6-digit code shown above.');
+    }
+  };
+
+  // Dedicated Isolated Google Sign-In for My Bookings flow (Zero Global Session Impact)
+  const handleMyBookingsGoogleSignIn = async () => {
+    setIsOAuthAuthenticating(true);
+    setOtpError('');
+    try {
+      const authed = await signInWithGoogle();
+      if (authed && authed.email) {
+        setMyBookingsEmail(authed.email);
+        setIsEmailVerified(true);
+        // Strictly isolate session: do not mutate global user state, and sign out from global context
+        await signOutUser();
+      }
+    } catch (err: any) {
+      console.warn('My Bookings Google sign-in:', err);
+      setOtpError('Google sign-in could not be completed.');
+    } finally {
+      setIsOAuthAuthenticating(false);
     }
   };
 
@@ -2539,6 +2545,22 @@ export default function App() {
 
     hideScreenWithAnimation(active, () => {
       const prevScreen = navStackRef.current.pop();
+      // Requirement 2: Closing the Book a Call popup must NEVER automatically open the Admin Panel or Main Menu.
+      if (active === 'booking') {
+        if (prevScreen && prevScreen !== 'menu' && prevScreen !== 'admin-dashboard' && prevScreen !== 'admin-password') {
+          showScreen(prevScreen);
+        }
+        return;
+      }
+      // Requirement 3: Reset temporary verification context when My Bookings flow ends
+      if (active === 'my-bookings') {
+        setIsEmailVerified(false);
+        setOtpGenerated('');
+        setOtpInput('');
+        setOtpMessage('');
+        setOtpError('');
+        setBookingsSearchQuery('');
+      }
       if (prevScreen) {
         showScreen(prevScreen);
       }
@@ -3677,8 +3699,9 @@ export default function App() {
             rotateX: headerRotateX,
             rotateY: headerRotateY,
             transformStyle: 'preserve-3d',
+            isolation: 'isolate',
           }}
-          className="glass-capsule relative flex h-16 w-full items-center justify-between rounded-full px-3.5 sm:px-5 overflow-hidden cursor-default shadow-[0_12px_28px_-6px_rgba(115,88,48,0.24)] hover:shadow-[0_16px_36px_-6px_rgba(115,88,48,0.30)] transition-shadow duration-300 shrink-0"
+          className="glass-capsule relative z-50 flex h-16 w-full items-center justify-between rounded-full px-3.5 sm:px-5 overflow-hidden cursor-default shadow-[0_12px_28px_-6px_rgba(115,88,48,0.24)] hover:shadow-[0_16px_36px_-6px_rgba(115,88,48,0.30)] transition-shadow duration-300 shrink-0"
         >
           {/* Top light rim with feathered fade toward corners */}
           <div className="glass-glow-rim" aria-hidden="true" />
@@ -3747,8 +3770,15 @@ export default function App() {
           </button>
         </motion.header>
 
-        {/* Homepage Header Text directly below top navigation bar */}
-        <div className={`mt-2.5 sm:mt-3 mb-1 flex flex-col items-center justify-center text-center select-none px-4 max-w-3xl mx-auto ${isMenuRendered ? 'hidden' : 'flex'}`}>
+        {/* Homepage Header Text directly below top navigation bar - ONLY blurs when menu opens */}
+        <div
+          className={`w-full flex flex-col items-center justify-center text-center select-none px-4 max-w-3xl mx-auto transition-all duration-300 ${
+            isMenuRendered
+              ? 'absolute top-[82px] sm:top-[90px] left-0 right-0 z-10 filter blur-[8px] opacity-40 pointer-events-none select-none'
+              : 'relative z-10 mt-2.5 sm:mt-3 mb-1'
+          }`}
+          aria-hidden={isMenuRendered}
+        >
           <span className="text-headline-curiosity text-[26px] xs:text-[30px] sm:text-[40px] md:text-[46px] whitespace-nowrap leading-tight py-0.5">
             Your Curiosity. My Passion.
           </span>
@@ -3758,20 +3788,20 @@ export default function App() {
 
           {/* Quick Action Buttons on Home Page directly below One Conversation */}
           <div className="mt-3.5 sm:mt-4 flex items-center justify-center gap-2.5 sm:gap-3.5 w-full max-w-[310px] xs:max-w-xs sm:max-w-sm mx-auto px-1">
-            {/* 1. Book a Call Button */}
+            {/* 1. Book a Call Button with Continuous Looping Call Icon Animation */}
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 triggerHaptic(18);
-                openScreenWithHistory('booking', 'menu');
+                openScreenWithHistory('booking');
               }}
               className="group relative flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-[#382010] via-[#261408] to-[#180a02] hover:from-[#4a2e18] hover:to-[#261408] text-[#fcf8f2] font-['Outfit',sans-serif] font-bold text-xs sm:text-[13px] tracking-tight border border-amber-400/30 shadow-[0_8px_20px_-4px_rgba(44,23,8,0.45)] hover:shadow-[0_12px_26px_-4px_rgba(44,23,8,0.55)] active:scale-[0.96] transition-all duration-200 cursor-pointer select-none overflow-hidden"
               title="Book a Call"
             >
               <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
               <svg
-                className="h-4 w-4 text-amber-300 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                className="h-4 w-4 text-amber-300 shrink-0 transition-transform duration-200 group-hover:scale-110 animate-call-icon-loop"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -3785,19 +3815,19 @@ export default function App() {
               <span className="whitespace-nowrap font-black">Book a Call</span>
             </button>
 
-            {/* 2. Track Booking Button */}
+            {/* 2. Track Booking Button with Continuous Looping Search Icon Animation */}
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 triggerHaptic(16);
-                openScreenWithHistory('my-bookings', 'menu');
+                openScreenWithHistory('my-bookings');
               }}
               className="group relative flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 sm:px-4 rounded-2xl bg-white/75 hover:bg-white/95 backdrop-blur-md text-[#2c1708] font-['Outfit',sans-serif] font-bold text-xs sm:text-[13px] tracking-tight border border-white/90 shadow-[0_8px_20px_-4px_rgba(95,70,40,0.20)] hover:shadow-[0_10px_24px_-4px_rgba(95,70,40,0.28)] active:scale-[0.96] transition-all duration-200 cursor-pointer select-none"
               title="Track Booking"
             >
               <svg
-                className="h-4 w-4 text-[#593e28] shrink-0 transition-transform duration-200 group-hover:scale-110"
+                className="h-4 w-4 text-[#593e28] shrink-0 transition-transform duration-200 group-hover:scale-110 animate-search-icon-loop"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -3814,30 +3844,44 @@ export default function App() {
           </div>
         </div>
 
-        {/* Transparent dismiss backdrop overlay: closes menu on click anywhere outside only when no modal is active */}
+        {/* iOS 27 Liquid Glass Background Blur & Dismiss Backdrop when Main Menu is Open */}
         {isMenuRendered && !isAnyModalActive && (
           <div
             onClick={(e) => {
               e.stopPropagation();
               handleCloseMenu();
             }}
-            className="fixed inset-0 z-0 cursor-default"
+            className={`fixed inset-0 z-20 cursor-default transition-all duration-300 ${
+              isMenuClosing
+                ? 'opacity-0 backdrop-blur-none pointer-events-none'
+                : 'opacity-100 backdrop-blur-[10px] bg-gradient-to-b from-[#2b190c]/25 via-[#4a2e18]/20 to-[#1f0f04]/30'
+            }`}
+            style={{
+              WebkitBackdropFilter: isMenuClosing ? 'none' : 'blur(10px) saturate(1.15)',
+              backdropFilter: isMenuClosing ? 'none' : 'blur(10px) saturate(1.15)',
+            }}
             aria-hidden="true"
-          />
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,245,230,0.18)_0%,_transparent_70%)] pointer-events-none" />
+          </div>
         )}
 
         {/* 
           iOS 27 Liquid Glass Dropdown Menu:
+          - RESTORED to exact original positioning, alignment, and layout (relative z-30 mt-2 sm:mt-2.5 directly below header)
           - Both In-Animation AND Out-Animation (smooth fluid exit)
-          - Extends comfortably all the way down so all buttons are completely visible
+          - Extends comfortably so all buttons are completely visible
           - Guest Profile Header with "Hey, Guest! 👋", subtitle, and "Sign In →"
         */}
         {isMenuRendered && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`liquid-glass-menu glass-dropdown-panel relative z-10 mt-2 sm:mt-2.5 flex flex-col rounded-[26px] p-3.5 sm:p-4 shadow-[0_20px_40px_-10px_rgba(115,88,48,0.3)] overflow-hidden ${
+            className={`liquid-glass-menu glass-dropdown-panel relative z-30 mt-2 sm:mt-2.5 flex flex-col rounded-[26px] p-3.5 sm:p-4 shadow-[0_20px_40px_-10px_rgba(115,88,48,0.3)] overflow-hidden ${
               isMenuClosing ? 'animate-liquid-menu-close' : 'animate-liquid-menu-open'
             }`}
+            style={{
+              maxHeight: 'calc(100vh - 94px)',
+            }}
           >
             {/* Top rim feathered glow on the dropdown for iOS 27 glass realism */}
             <div className="glass-glow-rim" aria-hidden="true" />
@@ -5685,7 +5729,7 @@ export default function App() {
 
             {/* Content Body */}
             <div className="flex-1 overflow-y-auto overscroll-contain pr-1 py-3 scrollbar-none flex flex-col gap-3">
-              {(!isEmailVerified && !isLoggedIn) ? (
+              {!isEmailVerified ? (
                 /* Email Verification Form for Guest Security */
                 <div className="flex flex-col gap-3 py-2">
                   <div className="rounded-2xl bg-white/55 border border-white/80 p-3.5 shadow-2xs flex flex-col gap-2">
@@ -5736,7 +5780,7 @@ export default function App() {
 
                       <button
                         type="button"
-                        onClick={handleFirebaseGoogleSignIn}
+                        onClick={handleMyBookingsGoogleSignIn}
                         disabled={isOAuthAuthenticating || isAuthLoading}
                         className="w-full py-2.5 px-3 rounded-xl bg-white/80 hover:bg-white text-gray-800 font-bold text-xs border border-white/95 shadow-2xs hover:shadow-xs active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                       >
@@ -5786,25 +5830,23 @@ export default function App() {
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between pb-1 text-xs">
                     <span className="text-[#7d644d] font-semibold">
-                      Account: <strong>{isLoggedIn ? userEmail : myBookingsEmail}</strong>
+                      Account: <strong>{myBookingsEmail}</strong>
                     </span>
-                    {!isLoggedIn && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEmailVerified(false);
-                          setOtpGenerated('');
-                          setOtpInput('');
-                        }}
-                        className="text-[11px] font-bold text-[#8c6b4b] hover:underline"
-                      >
-                        Switch Email
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEmailVerified(false);
+                        setOtpGenerated('');
+                        setOtpInput('');
+                      }}
+                      className="text-[11px] font-bold text-[#8c6b4b] hover:underline"
+                    >
+                      Switch Email
+                    </button>
                   </div>
 
                   {(() => {
-                    const activeEmail = (isLoggedIn ? userEmail : myBookingsEmail).toLowerCase();
+                    const activeEmail = myBookingsEmail.toLowerCase();
                     const allUserBookings = bookings.filter((b) => !activeEmail || b.email.toLowerCase() === activeEmail);
                     const q = bookingsSearchQuery.trim().toLowerCase();
                     const userBookings = q
@@ -6765,13 +6807,15 @@ export default function App() {
             e.stopPropagation();
             failAndCloseAdminAuth();
           }}
-          className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md ${
+          className={`fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/55 backdrop-blur-[14px] ${
             isAdminPasswordModalClosing ? 'animate-contact-backdrop-close' : 'animate-contact-backdrop'
           }`}
           role="dialog"
           aria-modal="true"
           aria-labelledby="admin-password-modal-title"
         >
+          {/* Focused Ambient Glow for Admin Visual Priority */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(251,191,36,0.12)_0%,_transparent_70%)] pointer-events-none" />
           <SwipeableModalCard 
             onClose={() => failAndCloseAdminAuth()}
             isClosing={isAdminPasswordModalClosing}
@@ -6781,7 +6825,7 @@ export default function App() {
                 failAndCloseAdminAuth();
               }
             }}
-            className={`liquid-glass-menu relative w-full max-w-[370px] rounded-[26px] p-5 sm:p-6 shadow-[0_24px_50px_-12px_rgba(95,70,40,0.38)] overflow-hidden flex flex-col gap-4 ${
+            className={`liquid-glass-menu relative w-full max-w-[370px] rounded-[26px] p-5 sm:p-6 shadow-[0_32px_70px_-10px_rgba(40,25,10,0.6)] ring-1 ring-amber-400/30 overflow-hidden flex flex-col gap-4 ${
               isAdminPasswordModalClosing ? 'animate-admin-modal-close' : 'animate-contact-modal'
             }`}
           >
@@ -6862,17 +6906,19 @@ export default function App() {
             e.stopPropagation();
             closeScreenWithHistory('admin-dashboard');
           }}
-          className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-md ${
+          className={`fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/55 backdrop-blur-[14px] ${
             isAdminDashboardClosing ? 'animate-contact-backdrop-close' : 'animate-contact-backdrop'
           }`}
           role="dialog"
           aria-modal="true"
           aria-labelledby="admin-dashboard-title"
         >
+          {/* Focused Ambient Glow for Admin Visual Priority */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(251,191,36,0.14)_0%,_transparent_75%)] pointer-events-none" />
           <SwipeableModalCard 
             onClose={() => closeScreenWithHistory('admin-dashboard')}
             isClosing={isAdminDashboardClosing}
-            className={`liquid-glass-menu relative w-full max-w-[540px] max-h-[90vh] overflow-y-auto rounded-[30px] p-5 sm:p-7 shadow-[0_32px_70px_-12px_rgba(40,25,10,0.5)] flex flex-col gap-5 ${
+            className={`liquid-glass-menu relative w-full max-w-[540px] max-h-[90vh] overflow-y-auto rounded-[30px] p-5 sm:p-7 shadow-[0_36px_80px_-12px_rgba(30,16,6,0.65)] ring-1 ring-amber-400/35 flex flex-col gap-5 ${
               isAdminDashboardClosing ? 'animate-admin-modal-close' : 'animate-contact-modal'
             }`}
           >

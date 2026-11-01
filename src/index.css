@@ -284,6 +284,80 @@
   }
 }
 
+/* ========================================================================= */
+/* PREMIUM iOS 27 CONTINUOUS LOOPING BUTTON ICON ANIMATIONS                 */
+/* ========================================================================= */
+
+/* 1. Continuous Smooth Looping Call Icon Animation for Book a Call */
+@keyframes callIconContinuousLoop {
+  0% {
+    transform: rotate(0deg) scale(1);
+    filter: drop-shadow(0 0 0px rgba(251, 191, 36, 0));
+  }
+  10% {
+    transform: rotate(-13deg) scale(1.09);
+    filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.7));
+  }
+  20% {
+    transform: rotate(13deg) scale(1.09);
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.75));
+  }
+  30% {
+    transform: rotate(-9deg) scale(1.05);
+    filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.5));
+  }
+  40% {
+    transform: rotate(9deg) scale(1.05);
+    filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.4));
+  }
+  50% {
+    transform: rotate(-3deg) scale(1.02);
+    filter: drop-shadow(0 0 1px rgba(251, 191, 36, 0.25));
+  }
+  60%, 100% {
+    transform: rotate(0deg) scale(1);
+    filter: drop-shadow(0 0 0px rgba(251, 191, 36, 0));
+  }
+}
+
+.animate-call-icon-loop {
+  display: inline-block;
+  transform-origin: 25% 75%;
+  animation: callIconContinuousLoop 2.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  will-change: transform, filter;
+}
+
+/* 2. Continuous Smooth Looping Search Icon Animation for Track Booking */
+@keyframes searchIconContinuousLoop {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 0px rgba(95, 70, 40, 0));
+  }
+  15% {
+    transform: translate(1.5px, -1.5px) scale(1.12) rotate(6deg);
+    filter: drop-shadow(0 1px 3px rgba(95, 70, 40, 0.35));
+  }
+  35% {
+    transform: translate(-1.5px, 1px) scale(1.09) rotate(-6deg);
+    filter: drop-shadow(0 1px 3px rgba(95, 70, 40, 0.3));
+  }
+  55% {
+    transform: translate(1px, 1px) scale(1.04) rotate(3deg);
+    filter: drop-shadow(0 1px 2px rgba(95, 70, 40, 0.2));
+  }
+  70%, 100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 0px rgba(95, 70, 40, 0));
+  }
+}
+
+.animate-search-icon-loop {
+  display: inline-block;
+  transform-origin: 40% 40%;
+  animation: searchIconContinuousLoop 3.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  will-change: transform, filter;
+}
+
 /* Orbital Ambient Pulse & Liquid Glass Rings */
 @keyframes orbitalPulse {
   0%, 100% {
