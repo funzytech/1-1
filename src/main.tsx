@@ -20,3 +20,20 @@ root.render(
   </ErrorBoundary>
 );
 
+// Graceful dissolution of the initial luxury loading shell once React renders
+requestAnimationFrame(() => {
+  const shell = document.getElementById('ft-initial-shell');
+  if (shell) {
+    shell.style.transition = 'opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)';
+    shell.style.opacity = '0';
+    shell.style.transform = 'scale(1.02)';
+    shell.style.pointerEvents = 'none';
+    setTimeout(() => {
+      try {
+        shell.remove();
+      } catch {}
+    }, 480);
+  }
+});
+
+
