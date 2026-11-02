@@ -3085,6 +3085,14 @@ export default function App() {
             // Trigger ONLY when user arrives through referral link/QR code as requested
             setTimeout(() => {
               setIsPromoPopupOpen(true);
+              try {
+                confetti({
+                  particleCount: 45,
+                  spread: 65,
+                  origin: { y: 0.58 },
+                  colors: ['#f59e0b', '#d97706', '#10b981', '#f43f5e', '#8b5cf6', '#3b82f6'],
+                });
+              } catch {}
               if (!promoSoundPlayedRef.current) {
                 promoSoundPlayedRef.current = true;
                 playPartyPopperSound();
@@ -7162,57 +7170,79 @@ export default function App() {
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
 
-            {/* Party Popper Burst & Radial Confetti Animation */}
-            <div className="relative flex items-center justify-center w-20 h-20 mt-1 select-none pointer-events-none">
-              {/* Confetti Particles */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="absolute h-2 w-2 rounded-full bg-amber-400 animate-confetti-particle" style={{ '--tw-confetti-x': '-38px', '--tw-confetti-y': '-35px', '--tw-confetti-r': '90deg' } as any} />
-                <span className="absolute h-2 w-1.5 rounded-sm bg-rose-500 animate-confetti-particle" style={{ '--tw-confetti-x': '36px', '--tw-confetti-y': '-42px', '--tw-confetti-r': '180deg' } as any} />
-                <span className="absolute h-1.5 w-2.5 rounded-sm bg-emerald-500 animate-confetti-particle" style={{ '--tw-confetti-x': '-42px', '--tw-confetti-y': '12px', '--tw-confetti-r': '120deg' } as any} />
-                <span className="absolute h-2 w-2 rounded-full bg-orange-400 animate-confetti-particle" style={{ '--tw-confetti-x': '40px', '--tw-confetti-y': '14px', '--tw-confetti-r': '-90deg' } as any} />
-                <span className="absolute h-2.5 w-2.5 rounded-full bg-amber-300 animate-confetti-particle" style={{ '--tw-confetti-x': '0px', '--tw-confetti-y': '-50px', '--tw-confetti-r': '45deg' } as any} />
-                <span className="absolute h-1.5 w-2 rounded-sm bg-violet-400 animate-confetti-particle" style={{ '--tw-confetti-x': '-24px', '--tw-confetti-y': '-48px', '--tw-confetti-r': '200deg' } as any} />
-                <span className="absolute h-2 w-1.5 rounded-sm bg-pink-400 animate-confetti-particle" style={{ '--tw-confetti-x': '26px', '--tw-confetti-y': '-46px', '--tw-confetti-r': '-140deg' } as any} />
+            {/* Custom Background Party Popper Burst & Wavy Float Confetti System */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden select-none z-0" aria-hidden="true">
+              {/* Radial celebration burst glow */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(245,158,11,0.22)_0%,rgba(217,119,6,0.06)_50%,transparent_75%)] animate-pulse" />
+
+              {/* Bottom-Left Party Popper Cannon Burst Origin */}
+              <div className="absolute -bottom-2 -left-2 w-28 h-28 pointer-events-none">
+                <span className="absolute bottom-0 left-0 w-2 h-2 rounded-full bg-amber-400 animate-ftPopperShoot" style={{ '--ft-shoot-x': '45px', '--ft-shoot-y': '-85px', animationDelay: '0.1s' } as any} />
+                <span className="absolute bottom-0 left-0 w-2.5 h-1.5 rounded-sm bg-rose-500 animate-ftPopperShoot" style={{ '--ft-shoot-x': '75px', '--ft-shoot-y': '-65px', animationDelay: '0.2s' } as any} />
+                <span className="absolute bottom-0 left-0 w-1.5 h-3 rounded-full bg-emerald-400 animate-ftPopperShoot" style={{ '--ft-shoot-x': '30px', '--ft-shoot-y': '-110px', animationDelay: '0.15s' } as any} />
+                <span className="absolute bottom-0 left-0 w-2 h-2 rounded-sm bg-violet-400 animate-ftPopperShoot" style={{ '--ft-shoot-x': '60px', '--ft-shoot-y': '-100px', animationDelay: '0.25s' } as any} />
               </div>
 
-              {/* Party Popper Graphic */}
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200/90 border border-white/95 shadow-md text-[#4a321f] animate-popper-burst">
-                <svg className="h-8 w-8 text-[#593e28]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5.8 11.3 2 22l10.7-3.79" />
-                  <path d="M4 3h.01" />
-                  <path d="M22 8h.01" />
-                  <path d="M15 2h.01" />
-                  <path d="M22 20h.01" />
-                  <path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 12" />
-                  <path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11v0c-.11.66-.7 1.12-1.37.98l-.33-.07c-.77-.16-1.5.34-1.65 1.11L15 19" />
-                </svg>
+              {/* Bottom-Right Party Popper Cannon Burst Origin */}
+              <div className="absolute -bottom-2 -right-2 w-28 h-28 pointer-events-none">
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-amber-300 animate-ftPopperShoot" style={{ '--ft-shoot-x': '-50px', '--ft-shoot-y': '-90px', animationDelay: '0.12s' } as any} />
+                <span className="absolute bottom-0 right-0 w-2.5 h-1.5 rounded-sm bg-orange-500 animate-ftPopperShoot" style={{ '--ft-shoot-x': '-80px', '--ft-shoot-y': '-70px', animationDelay: '0.22s' } as any} />
+                <span className="absolute bottom-0 right-0 w-1.5 h-3 rounded-full bg-sky-400 animate-ftPopperShoot" style={{ '--ft-shoot-x': '-35px', '--ft-shoot-y': '-115px', animationDelay: '0.18s' } as any} />
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-sm bg-pink-500 animate-ftPopperShoot" style={{ '--ft-shoot-x': '-65px', '--ft-shoot-y': '-105px', animationDelay: '0.28s' } as any} />
+              </div>
+
+              {/* Floating, Waving & Tumbling Confetti Particles across the background */}
+              <div className="absolute inset-0">
+                <span className="absolute top-[8%] left-[12%] w-2 h-2 rounded-full bg-amber-400/80 animate-ftConfettiWave1" style={{ animationDelay: '0s' }} />
+                <span className="absolute top-[14%] right-[16%] w-2.5 h-1.5 rounded-xs bg-rose-400/75 animate-ftConfettiWave2" style={{ animationDelay: '0.4s' }} />
+                <span className="absolute top-[22%] left-[28%] w-1.5 h-3 rounded-xs bg-emerald-400/70 animate-ftConfettiWave3" style={{ animationDelay: '0.8s' }} />
+                <span className="absolute top-[18%] right-[32%] w-2 h-2 rounded-full bg-violet-400/80 animate-ftConfettiWave1" style={{ animationDelay: '1.2s' }} />
+                <span className="absolute top-[34%] left-[10%] w-2.5 h-2 rounded-sm bg-orange-400/80 animate-ftConfettiWave2" style={{ animationDelay: '0.6s' }} />
+                <span className="absolute top-[42%] right-[12%] w-1.5 h-2.5 rounded-xs bg-amber-300/85 animate-ftConfettiWave3" style={{ animationDelay: '1.4s' }} />
+                <span className="absolute top-[52%] left-[22%] w-2 h-2 rounded-full bg-sky-400/75 animate-ftConfettiWave1" style={{ animationDelay: '1.8s' }} />
+                <span className="absolute top-[58%] right-[24%] w-2 h-1.5 rounded-xs bg-pink-400/80 animate-ftConfettiWave2" style={{ animationDelay: '0.3s' }} />
+                <span className="absolute top-[70%] left-[14%] w-1.5 h-3 rounded-xs bg-emerald-500/70 animate-ftConfettiWave3" style={{ animationDelay: '1.1s' }} />
+                <span className="absolute top-[68%] right-[14%] w-2.5 h-2 rounded-sm bg-amber-400/80 animate-ftConfettiWave1" style={{ animationDelay: '1.6s' }} />
+                <span className="absolute top-[82%] left-[34%] w-2 h-2 rounded-full bg-purple-400/75 animate-ftConfettiWave2" style={{ animationDelay: '0.9s' }} />
+                <span className="absolute top-[86%] right-[30%] w-1.5 h-2 rounded-xs bg-rose-500/75 animate-ftConfettiWave3" style={{ animationDelay: '1.5s' }} />
               </div>
             </div>
 
-            {/* Exact Required Headline on a single line */}
-            <div className="flex flex-col gap-1.5 items-center">
+            {/* Elegant Celebration Tag above text (Replacing old icon with clean premium badge) */}
+            <div className="relative z-10 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/35 text-[#854d1d] text-[11px] sm:text-xs font-black tracking-wider uppercase shadow-2xs whitespace-nowrap mt-1">
+              <span>🎉 10% Referral Discount Unlocked 🎉</span>
+            </div>
+
+            {/* Headline with Highlighted Single-Line 'Book your first call' */}
+            <div className="relative z-10 flex flex-col gap-2 items-center text-center w-full px-1">
               <h2
                 id="promo-popup-heading"
-                className="font-['Outfit',sans-serif] font-black text-lg sm:text-2xl text-[#261508] tracking-tight leading-tight whitespace-nowrap text-center"
+                className="font-['Outfit',sans-serif] font-black text-center w-full text-[17px] xs:text-[19px] sm:text-[23px] text-[#261508] tracking-tight leading-snug"
               >
-                Unlock <span className="text-[#a66a38]">10% OFF</span> Your First Call!
+                <span className="inline-block whitespace-nowrap bg-gradient-to-r from-amber-600 via-[#8c572a] to-amber-700 bg-clip-text text-transparent underline decoration-amber-500/50 underline-offset-4 font-black">
+                  Book your first call
+                </span>
+                <span className="block text-sm sm:text-base font-extrabold text-[#523720] mt-1 whitespace-nowrap">
+                  &amp; claim your 10% instant discount!
+                </span>
               </h2>
-              <p className="text-xs sm:text-sm text-[#664b33] font-medium max-w-[320px] mx-auto leading-relaxed text-center">
-                Connect directly with a tech creator for a 1-on-1 consultation session via Google Meet.
+              <p className="text-[11.5px] sm:text-xs md:text-[13px] text-[#664b33] font-medium max-w-[320px] mx-auto leading-relaxed text-center">
+                Connect directly with a tech creator for a personalized 1-on-1 consultation session via Google Meet.
               </p>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full pt-2">
+            <div className="relative z-10 flex flex-col sm:flex-row items-center gap-2.5 w-full pt-2">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  closeScreenWithHistory('promo');
                   openScreenWithHistory('booking', 'promo');
                 }}
-                className="w-full sm:flex-1 py-3 px-5 rounded-2xl bg-[#2c1708] hover:bg-black text-white font-['Outfit',sans-serif] font-extrabold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
+                className="w-full sm:flex-1 py-3 px-5 rounded-2xl bg-[#2c1708] hover:bg-black text-white font-['Outfit',sans-serif] font-extrabold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2 whitespace-nowrap"
               >
-                <span>Book a Call</span>
+                <span className="whitespace-nowrap">Book your first call</span>
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14m-6-6 6 6-6 6" />
                 </svg>
@@ -7224,7 +7254,7 @@ export default function App() {
                   e.stopPropagation();
                   closeScreenWithHistory('promo');
                 }}
-                className="w-full sm:w-auto py-3 px-4 rounded-2xl bg-white/60 hover:bg-white text-[#593e28] font-bold text-xs border border-white/80 shadow-2xs transition-all cursor-pointer active:scale-[0.98]"
+                className="w-full sm:w-auto py-3 px-4 rounded-2xl bg-white/60 hover:bg-white text-[#593e28] font-bold text-xs border border-white/80 shadow-2xs transition-all cursor-pointer active:scale-[0.98] whitespace-nowrap"
               >
                 Maybe Later
               </button>

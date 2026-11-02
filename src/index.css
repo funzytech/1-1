@@ -1723,6 +1723,103 @@
   will-change: transform, opacity;
 }
 
+/* Custom Background Party Popper Burst & Wavy Float Confetti */
+@keyframes ftPopperShoot {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(calc(var(--ft-shoot-x, 40px) * 0.4), calc(var(--ft-shoot-y, -60px) * 0.4)) scale(1.15) rotate(45deg);
+  }
+  60% {
+    opacity: 0.95;
+    transform: translate(var(--ft-shoot-x, 40px), var(--ft-shoot-y, -60px)) scale(1) rotate(160deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--ft-shoot-x, 40px) * 1.2), calc(var(--ft-shoot-y, -60px) + 25px)) scale(0.8) rotate(320deg);
+  }
+}
+
+.animate-ftPopperShoot {
+  animation: ftPopperShoot 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes ftConfettiWave1 {
+  0% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-8px) translateX(6px) rotate(45deg);
+    opacity: 0.95;
+  }
+  65% {
+    transform: translateY(4px) translateX(-5px) rotate(120deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(180deg);
+    opacity: 0.45;
+  }
+}
+
+@keyframes ftConfettiWave2 {
+  0% {
+    transform: translateY(0px) translateX(0px) rotate(0deg) scale(0.9);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-10px) translateX(-7px) rotate(-60deg) scale(1.1);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(5px) translateX(6px) rotate(-130deg) scale(0.95);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(-180deg) scale(0.9);
+    opacity: 0.5;
+  }
+}
+
+@keyframes ftConfettiWave3 {
+  0% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+    opacity: 0.4;
+  }
+  35% {
+    transform: translateY(7px) translateX(8px) rotate(70deg);
+    opacity: 0.9;
+  }
+  70% {
+    transform: translateY(-9px) translateX(-6px) rotate(140deg);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(210deg);
+    opacity: 0.4;
+  }
+}
+
+.animate-ftConfettiWave1 {
+  animation: ftConfettiWave1 3.2s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+.animate-ftConfettiWave2 {
+  animation: ftConfettiWave2 3.8s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+.animate-ftConfettiWave3 {
+  animation: ftConfettiWave3 4.2s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
 /* Accessible prefers-reduced-motion fallback */
 @media (prefers-reduced-motion: reduce) {
   .animate-heart-left,
