@@ -5,7 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(({ command, mode }) => {
   const isProduction = mode === 'production' || command === 'build';
-  const base = process.env.VITE_BASE_PATH || (isProduction ? '/1-1/' : '/');
+  const base = process.env.VITE_BASE_PATH || (isProduction ? './' : '/');
 
   return {
     base,

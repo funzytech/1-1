@@ -12,19 +12,68 @@
     <meta property="og:url" content="https://funzytech.github.io/1-1/" />
     <meta name="twitter:card" content="summary_large_image" />
     <script>
-      // GitHub Pages URL normalizer: ensures /1-1 is cleanly treated as /1-1/ with query parameters preserved
+      // Universal GitHub Pages & Path Normalizer:
       (function() {
-        if (window.location.hostname.endsWith('github.io') && window.location.pathname === '/1-1') {
-          window.history.replaceState(null, '', '/1-1/' + window.location.search + window.location.hash);
+        var path = window.location.pathname;
+        var search = window.location.search;
+        var hash = window.location.hash;
+
+        // 1. If visited as /1-1 without trailing slash, redirect with slash to preserve query params and relative asset base
+        if (path === '/1-1') {
+          window.location.replace('/1-1/' + search + hash);
+          return;
+        }
+
+        // 2. Dynamic Base Resolution for GitHub Pages subdirectory deployment
+        if (window.location.hostname.endsWith('github.io') && path.startsWith('/1-1')) {
+          var baseTag = document.createElement('base');
+          baseTag.href = '/1-1/';
+          document.head.appendChild(baseTag);
         }
       })();
+
+      // Global early error catcher to prevent silent white screen
+      window.addEventListener('error', function(event) {
+        var target = event.target;
+        if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
+          var src = target.src || target.href;
+          console.warn('Asset load failed:', src);
+          if (src && !src.includes('/1-1/') && window.location.hostname.endsWith('github.io')) {
+            var newSrc = '/1-1/' + src.replace(/^[a-z]+:\/\/[^/]+\//, '');
+            if (target.tagName === 'SCRIPT') {
+              var s = document.createElement('script');
+              s.type = 'module';
+              s.crossOrigin = 'anonymous';
+              s.src = newSrc;
+              document.head.appendChild(s);
+            }
+          }
+        }
+      }, true);
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Bebas+Neue&family=Cinzel:wght@700;800;900&family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Oswald:wght@600;700&family=Outfit:wght@400;500;600;700;800&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=Poppins:wght@600;700&family=Sacramento&family=Satisfy&family=Space+Grotesk:wght@700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+    <style>
+      html, body {
+        background-color: #d9c4a2;
+        margin: 0;
+        padding: 0;
+      }
+      @keyframes ftShellSpin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="bg-[#d9c4a2]">
+    <div id="root">
+      <div id="ft-initial-shell" style="min-height: 100vh; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #d9c4a2; font-family: 'Outfit', sans-serif; color: #2c1708;">
+        <div style="text-align: center; padding: 24px;">
+          <div style="width: 44px; height: 44px; margin: 0 auto 14px; border: 3px solid rgba(44, 23, 8, 0.18); border-top-color: #2c1708; border-radius: 50%; animation: ftShellSpin 0.85s linear infinite;"></div>
+          <div style="font-weight: 800; font-size: 19px; letter-spacing: -0.01em;">Funzy Tech</div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

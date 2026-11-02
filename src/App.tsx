@@ -3035,7 +3035,24 @@ export default function App() {
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const incomingRef = urlParams.get('ref') || urlParams.get('coupon');
+    let incomingRef = urlParams.get('ref') || urlParams.get('coupon');
+
+    // Fallback: check hash if router or redirect pushed query into hash
+    if (!incomingRef && window.location.hash) {
+      try {
+        const hashQuery = window.location.hash.includes('?')
+          ? window.location.hash.split('?')[1]
+          : window.location.hash.replace(/^#\/?/, '');
+        const hashParams = new URLSearchParams(hashQuery);
+        incomingRef = hashParams.get('ref') || hashParams.get('coupon');
+      } catch {}
+    }
+
+    if (incomingRef) {
+      // Clean up any trailing slashes or encoded artifacts
+      incomingRef = incomingRef.replace(/\/+$/, '').trim();
+    }
+
 
     if (incomingRef) {
       validateAndTrackReferral(incomingRef, visitorId, userEmail)

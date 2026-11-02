@@ -46,16 +46,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Set persistent session in browser storage
   useEffect(() => {
-    if (isFirebaseConfigured) {
-      setPersistence(auth, browserLocalPersistence).catch((err) => {
-        console.warn('Firebase persistence warning:', err);
-      });
+    if (isFirebaseConfigured && auth && typeof auth.app === 'object') {
+      try {
+        setPersistence(auth, browserLocalPersistence).catch((err) => {
+          console.warn('Firebase persistence warning:', err);
+        });
+      } catch (err) {
+        console.warn('Firebase setPersistence warning:', err);
+      }
     }
   }, []);
 
   // Sync profile document with Firestore
   const syncUserProfile = async (firebaseUser: User, customName?: string) => {
     try {
+      if (!db || typeof db.app !== 'object') {
+        throw new Error('Firestore not initialized');
+      }
       const userRef = doc(db, 'users', firebaseUser.uid);
       const snapshot = await getDoc(userRef);
 
@@ -97,32 +104,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Primary Auth State Listener
+  // Primary Auth State Listener with safety timeout
   useEffect(() => {
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !auth || typeof auth.app !== 'object') {
       setLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      async (currentUser) => {
-        setUser(currentUser);
-        if (currentUser) {
-          await syncUserProfile(currentUser);
-        } else {
-          setUserProfile(null);
-        }
-        setLoading(false);
-      },
-      (authError) => {
-        console.error('Firebase Auth State Error:', authError);
-        setError('Authentication service error: ' + authError.message);
-        setLoading(false);
-      }
-    );
+    // Defensive safety timer: guarantee loading never hangs permanently
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
 
-    return () => unsubscribe();
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = onAuthStateChanged(
+        auth,
+        async (currentUser) => {
+          clearTimeout(safetyTimer);
+          setUser(currentUser);
+          if (currentUser) {
+            await syncUserProfile(currentUser);
+          } else {
+            setUserProfile(null);
+          }
+          setLoading(false);
+        },
+        (authError) => {
+          clearTimeout(safetyTimer);
+          console.warn('Firebase Auth State Notice:', authError);
+          setLoading(false);
+        }
+      );
+    } catch (e) {
+      clearTimeout(safetyTimer);
+      console.warn('onAuthStateChanged setup notice:', e);
+      setLoading(false);
+    }
+
+    return () => {
+      clearTimeout(safetyTimer);
+      unsubscribe();
+    };
   }, []);
 
   // Map Firebase Error Codes to human-friendly messages

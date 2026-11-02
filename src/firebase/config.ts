@@ -22,18 +22,59 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.authDomain
 );
 
-// Centralized Singleton Initialization
-export const app: FirebaseApp = getApps().length
-  ? getApp()
-  : initializeApp(firebaseConfig);
+// Centralized Resilient Singleton Initialization
+let appInstance: FirebaseApp;
+try {
+  appInstance = getApps().length
+    ? getApp()
+    : initializeApp(firebaseConfig);
+} catch (err) {
+  console.warn('Firebase initializeApp safe fallback:', err);
+  try {
+    appInstance = initializeApp(
+      {
+        apiKey: firebaseConfig.apiKey || 'AIzaSyAopsExVTLcVs9lHEk3kPi7Im-UJbnvgQ8',
+        projectId: firebaseConfig.projectId || 'gen-lang-client-0113225813',
+      },
+      'fallbackApp'
+    );
+  } catch {
+    appInstance = {} as FirebaseApp;
+  }
+}
+export const app: FirebaseApp = appInstance;
 
-export const auth: Auth = getAuth(app);
-export const db: Firestore = appletConfig.firestoreDatabaseId
-  ? getFirestore(app, appletConfig.firestoreDatabaseId)
-  : getFirestore(app);
+let authInstance: Auth;
+try {
+  authInstance = getAuth(app);
+} catch (err) {
+  console.warn('Firebase getAuth safe fallback:', err);
+  authInstance = {} as Auth;
+}
+export const auth: Auth = authInstance;
+
+let dbInstance: Firestore;
+try {
+  dbInstance = appletConfig.firestoreDatabaseId
+    ? getFirestore(app, appletConfig.firestoreDatabaseId)
+    : getFirestore(app);
+} catch (err) {
+  console.warn('Firebase getFirestore with custom ID warning, falling back to default:', err);
+  try {
+    dbInstance = getFirestore(app);
+  } catch (err2) {
+    console.warn('Firebase getFirestore safe fallback:', err2);
+    dbInstance = {} as Firestore;
+  }
+}
+export const db: Firestore = dbInstance;
 
 // Official Google Auth Provider with recommended scopes (Basic profile & email only)
-export const googleAuthProvider = new GoogleAuthProvider();
-googleAuthProvider.setCustomParameters({
-  prompt: 'select_account',
-});
+let providerInstance = new GoogleAuthProvider();
+try {
+  providerInstance.setCustomParameters({
+    prompt: 'select_account',
+  });
+} catch {}
+export const googleAuthProvider = providerInstance;
+

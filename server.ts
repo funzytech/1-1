@@ -33,7 +33,7 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const port = 3000;
   const isProduction = process.env.NODE_ENV === 'production';
 
   app.use(express.json({ limit: '10mb' }));
@@ -2311,6 +2311,15 @@ async function startServer() {
   const server = app.listen(port, '0.0.0.0', () => {
     console.log(`Funzy Tech server running at http://0.0.0.0:${port}`);
   });
+
+  const secondaryPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 0;
+  if (secondaryPort && secondaryPort !== port) {
+    try {
+      app.listen(secondaryPort, '0.0.0.0', () => {
+        console.log(`Funzy Tech server also running on port ${secondaryPort}`);
+      });
+    } catch {}
+  }
 
   server.on('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {

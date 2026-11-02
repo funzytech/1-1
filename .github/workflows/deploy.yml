@@ -34,11 +34,12 @@ jobs:
         run: npm ci || npm install
 
       - name: Setup Pages
+        id: pages
         uses: actions/configure-pages@v5
 
       - name: Build app
         env:
-          VITE_BASE_PATH: '/1-1/'
+          VITE_BASE_PATH: './'
         run: npm run build
 
       - name: Ensure 404 fallback and .nojekyll for GitHub Pages SPA
