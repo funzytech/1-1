@@ -2285,8 +2285,10 @@ async function startServer() {
     });
   });
 
-  // Vite Integration
+  // Vite Integration & Static Route Handling (supports both / and /1-1 for GitHub Pages compatibility)
   if (!isProduction) {
+    app.get('/1-1', (_req, res) => res.redirect('/'));
+    app.get('/1-1/*', (req, res) => res.redirect(req.url.replace(/^\/1-1/, '')));
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
@@ -2299,6 +2301,7 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.resolve(__dirname, 'dist');
+    app.use('/1-1', express.static(distPath));
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
       res.sendFile(path.resolve(distPath, 'index.html'));

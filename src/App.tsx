@@ -26,6 +26,14 @@ import {
   DEFAULT_SHORTCUTS,
   type ShortcutItem,
 } from './components/KeyboardShortcutManager';
+import {
+  OFFICIAL_WEBSITE_BASE_URL,
+  getCanonicalReferralUrl,
+  getOrGenerateReferralCode as fetchOrGenerateReferralCode,
+  validateAndTrackReferral,
+  buildShareContent,
+  recordReferralRedemption,
+} from './services/referralService';
 
 // Synthesize real crisp party-popper celebration sound via Web Audio API
 const playPartyPopperSound = () => {
@@ -2025,6 +2033,10 @@ export default function App() {
 
     let appliedDiscountPercentage: number | undefined = undefined;
     let appliedReferralCode: string | undefined = undefined;
+    let currentVisitorId = '';
+    try {
+      currentVisitorId = localStorage.getItem('ft_visitor_id') || '';
+    } catch {}
 
     // Single-Use Coupon Enforcement & Self-Referral Prevention via authoritative backend
     if (referralDiscount && referralDiscount.code) {
@@ -2044,24 +2056,38 @@ export default function App() {
             email: finalEmail,
           }),
         });
-        const redeemData = await redeemRes.json();
-        if (!redeemRes.ok || !redeemData.success) {
-          const errorMsg =
-            redeemData.error ||
-            'This coupon has already been used.';
-          setBookingFormError(errorMsg);
-          triggerGlobalError('Coupon Error');
-          setReferralDiscount(null);
-          try {
-            localStorage.removeItem('ft_applied_coupon');
-          } catch {}
-          return;
+        if (redeemRes.ok) {
+          const redeemData = await redeemRes.json();
+          if (!redeemData.success) {
+            const errorMsg =
+              redeemData.error ||
+              'This coupon has already been used.';
+            setBookingFormError(errorMsg);
+            triggerGlobalError('Coupon Error');
+            setReferralDiscount(null);
+            try {
+              localStorage.removeItem('ft_applied_coupon');
+            } catch {}
+            return;
+          }
+        } else {
+          // Static GitHub Pages fallback: record redemption via Firestore service
+          await recordReferralRedemption(bookingId, referralDiscount.code, currentVisitorId, finalEmail);
         }
 
         appliedDiscountPercentage = 10;
         appliedReferralCode = referralDiscount.code;
-      } catch (networkErr) {
-        console.error('Coupon redemption error:', networkErr);
+        try {
+          localStorage.removeItem('ft_applied_coupon');
+        } catch {}
+      } catch {
+        // Fallback to direct Firestore redemption
+        await recordReferralRedemption(bookingId, referralDiscount.code, currentVisitorId, finalEmail);
+        appliedDiscountPercentage = 10;
+        appliedReferralCode = referralDiscount.code;
+        try {
+          localStorage.removeItem('ft_applied_coupon');
+        } catch {}
       }
     }
 
@@ -3012,29 +3038,23 @@ export default function App() {
     const incomingRef = urlParams.get('ref') || urlParams.get('coupon');
 
     if (incomingRef) {
-      const code = incomingRef.trim().toUpperCase();
-      fetch('/api/referral/track-visit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, visitorId }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.valid) {
+      validateAndTrackReferral(incomingRef, visitorId, userEmail)
+        .then((result) => {
+          if (result.valid && result.code) {
             setReferralDiscount({
-              code: data.code,
-              discountPercentage: data.discount_percentage,
-              isSelfReferral: data.isSelfReferral,
-              expiresAt: data.expires_at,
+              code: result.code,
+              discountPercentage: result.discount_percentage || 10,
+              isSelfReferral: false,
+              expiresAt: result.expires_at || '',
             });
 
             try {
               localStorage.setItem(
                 'ft_applied_coupon',
                 JSON.stringify({
-                  code: data.code,
-                  discountPercentage: data.discount_percentage,
-                  expiresAt: data.expires_at,
+                  code: result.code,
+                  discountPercentage: result.discount_percentage || 10,
+                  expiresAt: result.expires_at || '',
                 })
               );
             } catch {}
@@ -3047,9 +3067,13 @@ export default function App() {
                 playPartyPopperSound();
               }
             }, 600);
+          } else if (result.isSelfReferral) {
+            console.info('Self-referral detected and prevented.');
           }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.warn('Error processing referral parameter:', err);
+        });
     } else {
       try {
         const cached = localStorage.getItem('ft_applied_coupon');
@@ -3061,7 +3085,7 @@ export default function App() {
         }
       } catch {}
     }
-  }, [playPartyPopperSound]);
+  }, [playPartyPopperSound, userEmail]);
 
   // Production-Ready: Automatically prefetch single active referral code for returning or first-time visitor
   useEffect(() => {
@@ -3076,21 +3100,10 @@ export default function App() {
       visitorId = 'VIS-10001';
     }
 
-    const query = userEmail
-      ? `userId=${encodeURIComponent(userEmail)}`
-      : `visitorId=${encodeURIComponent(visitorId)}`;
-
-    fetch(`/api/referrals/current?${query}`, {
-      credentials: 'include',
-      headers: {
-        'x-visitor-id': visitorId,
-        ...(userEmail ? { 'x-user-email': userEmail } : {}),
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && (data.referral_code || data.code)) {
-          setMyReferralCode(data.referral_code || data.code);
+    fetchOrGenerateReferralCode(userEmail, visitorId)
+      .then((code) => {
+        if (code) {
+          setMyReferralCode(code);
         }
       })
       .catch((err) => console.warn('Could not prefetch referral code:', err));
@@ -3100,16 +3113,13 @@ export default function App() {
   const [shareSuccess, setShareSuccess] = useState<boolean>(false);
   const shareTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Single canonical referral URL generator: eliminates duplicate links, repeated parameters, or malformed queries
-  const getCanonicalReferralUrl = (code: string): string => {
-    const origin = window.location.origin;
-    const cleanPath = window.location.pathname.replace(/\/+$/, '');
-    const normalizedCode = encodeURIComponent(code.trim().toUpperCase());
-    return `${origin}${cleanPath}/?ref=${normalizedCode}`;
-  };
-
-  const buildExactShareIntro = (code: string): string => {
-    return `Hey friend,\n\nDo you have a *tech-related problem* or want to *personally connect with a tech creator*? Through FunzyTech, you can book a *one-to-one call* with tech creators and discuss your questions directly via *Google Meet*.\n\nUse my coupon code *${code}* to get *10% OFF on your call booking*.\n\nBook your call here:`;
+  const getOrGenerateReferralCode = async (): Promise<string> => {
+    if (myReferralCode) return myReferralCode;
+    const code = await fetchOrGenerateReferralCode(userEmail);
+    if (code) {
+      setMyReferralCode(code);
+    }
+    return code || myReferralCode || '';
   };
 
   const handleShareWebsite = async (e: React.MouseEvent) => {
@@ -3119,17 +3129,14 @@ export default function App() {
     const code = await getOrGenerateReferralCode();
     setIsFetchingReferralCode(false);
 
-    const canonicalUrl = getCanonicalReferralUrl(code);
-    const shareIntro = buildExactShareIntro(code);
+    const { title, text, url, fullMessage } = buildShareContent(code);
 
     if (navigator.share) {
       try {
-        // Native Web Share API: Pass shareIntro in text and canonicalUrl in url.
-        // Operating systems natively concatenate url to text, producing exactly ONE referral link!
         await navigator.share({
-          title: 'Funzy Tech — Direct Tech Creator Consultation',
-          text: shareIntro,
-          url: canonicalUrl,
+          title,
+          text,
+          url,
         });
         setShareSuccess(true);
         if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
@@ -3144,12 +3151,11 @@ export default function App() {
 
     // Graceful Fallback: Copy exact message with ONE single link to clipboard
     try {
-      const fullShareMessage = `${shareIntro} ${canonicalUrl}`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(fullShareMessage);
+        await navigator.clipboard.writeText(fullMessage);
       } else {
         const textarea = document.createElement('textarea');
-        textarea.value = fullShareMessage;
+        textarea.value = fullMessage;
         textarea.style.position = 'fixed';
         textarea.style.opacity = '0';
         document.body.appendChild(textarea);
@@ -3172,54 +3178,8 @@ export default function App() {
     const code = await getOrGenerateReferralCode();
     setIsFetchingReferralCode(false);
 
-    const canonicalUrl = getCanonicalReferralUrl(code);
-    const shareIntro = buildExactShareIntro(code);
-    const fullMessage = `${shareIntro} ${canonicalUrl}`;
-
-    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(fullMessage)}`;
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  // Production-Ready Smart Referral Code Resolver (Section 12 specification)
-  // Backend is the single source of truth; frontend NEVER generates codes locally.
-  const getOrGenerateReferralCode = async (): Promise<string> => {
-    if (myReferralCode) return myReferralCode;
-
-    let visitorId = '';
-    try {
-      visitorId = localStorage.getItem('ft_visitor_id') || '';
-      if (!visitorId) {
-        visitorId = 'VIS-' + Math.floor(10000 + Math.random() * 90000);
-        localStorage.setItem('ft_visitor_id', visitorId);
-      }
-    } catch {
-      visitorId = 'VIS-10001';
-    }
-
-    try {
-      const query = userEmail
-        ? `userId=${encodeURIComponent(userEmail)}`
-        : `visitorId=${encodeURIComponent(visitorId)}`;
-      const res = await fetch(`/api/referrals/current?${query}`, {
-        credentials: 'include',
-        headers: {
-          'x-visitor-id': visitorId,
-          ...(userEmail ? { 'x-user-email': userEmail } : {}),
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const code = data.referral_code || data.code;
-        if (code) {
-          setMyReferralCode(code);
-          return code;
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to fetch authoritative referral code from backend:', err);
-    }
-
-    return myReferralCode || '';
+    const { whatsAppUrl } = buildShareContent(code);
+    window.open(whatsAppUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleOpenQrModal = async (e?: React.MouseEvent) => {
@@ -3526,35 +3486,70 @@ export default function App() {
     if (!manualCouponInput.trim()) return;
     const cleanCode = manualCouponInput.trim().toUpperCase();
     setManualCouponStatus('Validating...');
+
+    let visitorId = '';
+    try {
+      visitorId = localStorage.getItem('ft_visitor_id') || '';
+    } catch {}
+
     try {
       const res = await fetch(`/api/referral/validate/${encodeURIComponent(cleanCode)}`, {
         credentials: 'include',
       });
-      const data = await res.json();
-      if (data.valid) {
-        setReferralDiscount({
-          code: data.code,
-          discountPercentage: data.discount_percentage,
-          expiresAt: data.expires_at,
-        });
-        triggerHaptic([25, 45, 25]);
-        setManualCouponStatus(`✓ ${data.discount_percentage}% discount applied!`);
-        try {
-          localStorage.setItem(
-            'ft_applied_coupon',
-            JSON.stringify({
-              code: data.code,
-              discountPercentage: data.discount_percentage,
-              expiresAt: data.expires_at,
-            })
-          );
-        } catch {}
-      } else {
-        setReferralDiscount(null);
-        setManualCouponStatus(data.error || 'This referral code is invalid or has expired.');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.valid) {
+          setReferralDiscount({
+            code: data.code,
+            discountPercentage: data.discount_percentage,
+            expiresAt: data.expires_at,
+          });
+          triggerHaptic([25, 45, 25]);
+          setManualCouponStatus(`✓ ${data.discount_percentage}% discount applied!`);
+          try {
+            localStorage.setItem(
+              'ft_applied_coupon',
+              JSON.stringify({
+                code: data.code,
+                discountPercentage: data.discount_percentage,
+                expiresAt: data.expires_at,
+              })
+            );
+          } catch {}
+          return;
+        } else {
+          setReferralDiscount(null);
+          setManualCouponStatus(data.error || 'This referral code is invalid or has expired.');
+          return;
+        }
       }
     } catch {
-      setManualCouponStatus('Referral verification is temporarily unavailable. Please try again.');
+      // Server not reachable -> use Firestore fallback
+    }
+
+    // Static GitHub Pages fallback validation via Firestore
+    const validation = await validateAndTrackReferral(cleanCode, visitorId, userEmail);
+    if (validation.valid && validation.code) {
+      setReferralDiscount({
+        code: validation.code,
+        discountPercentage: validation.discount_percentage || 10,
+        expiresAt: validation.expires_at || '',
+      });
+      triggerHaptic([25, 45, 25]);
+      setManualCouponStatus(`✓ ${validation.discount_percentage || 10}% discount applied!`);
+      try {
+        localStorage.setItem(
+          'ft_applied_coupon',
+          JSON.stringify({
+            code: validation.code,
+            discountPercentage: validation.discount_percentage || 10,
+            expiresAt: validation.expires_at || '',
+          })
+        );
+      } catch {}
+    } else {
+      setReferralDiscount(null);
+      setManualCouponStatus(validation.reason || 'This referral code is invalid or has expired.');
     }
   };
 
