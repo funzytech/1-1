@@ -121,6 +121,10 @@ export const WebsiteIntroAnimation: React.FC<WebsiteIntroAnimationProps> = ({
       if (safetyTimeoutRef.current) {
         clearTimeout(safetyTimeoutRef.current);
       }
+      try {
+        document.body.style.overflow = '';
+        document.body.style.backgroundColor = '#f7f2ea';
+      } catch {}
     };
   }, [forceShow, handleFinish, onComplete, tryStartAudio, isFadingOut]);
 
@@ -203,15 +207,17 @@ export const WebsiteIntroAnimation: React.FC<WebsiteIntroAnimationProps> = ({
       <audio
         ref={audioRef}
         preload="auto"
-        src="./assets/intro_audio.mp3"
         onEnded={handleFinish}
-      />
+      >
+        <source src="./assets/intro_audio.mp3" type="audio/mp3" />
+        <source src="/assets/intro_audio.mp3" type="audio/mp3" />
+        <source src="assets/intro_audio.mp3" type="audio/mp3" />
+      </audio>
 
       {/* Primary Video Element */}
       {!useFallbackAnimation ? (
         <video
           ref={videoRef}
-          src="./assets/intro_animation.mp4"
           autoPlay
           playsInline
           muted={isMuted}
@@ -226,7 +232,11 @@ export const WebsiteIntroAnimation: React.FC<WebsiteIntroAnimationProps> = ({
             maxHeight: '100vh',
             maxWidth: '100vw',
           }}
-        />
+        >
+          <source src="./assets/intro_animation.mp4" type="video/mp4" />
+          <source src="/assets/intro_animation.mp4" type="video/mp4" />
+          <source src="assets/intro_animation.mp4" type="video/mp4" />
+        </video>
       ) : (
         /* Pixel-perfect Pure CSS/SVG Fallback Replica */
         <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center">

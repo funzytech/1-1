@@ -78,31 +78,6 @@
         </div>
       </div>
     </div>
-
-
-    <!-- Dual-Mode Loader: Supports local Vite dev server and static GitHub Pages hosting -->
-    <script>
-      (function() {
-        var isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        if (!isDev) {
-          // On static hosting (like GitHub Pages), dynamically load compiled production bundle if not already present
-          if (!document.querySelector('script[src*="index.js"]')) {
-            var s = document.createElement('script');
-            s.type = 'module';
-            s.crossOrigin = 'anonymous';
-            s.src = './assets/index.js';
-            document.head.appendChild(s);
-          }
-          if (!document.querySelector('link[href*="index.css"]')) {
-            var l = document.createElement('link');
-            l.rel = 'stylesheet';
-            l.crossOrigin = 'anonymous';
-            l.href = './assets/index.css';
-            document.head.appendChild(l);
-          }
-        }
-      })();
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
