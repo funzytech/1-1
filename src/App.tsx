@@ -34,6 +34,8 @@ import {
   buildShareContent,
   recordReferralRedemption,
 } from './services/referralService';
+import { WebsiteIntroAnimation } from './components/WebsiteIntroAnimation';
+
 
 // Synthesize real crisp party-popper celebration sound via Web Audio API
 const playPartyPopperSound = () => {
@@ -428,6 +430,10 @@ export default function App() {
   
   // Fullscreen Sad Emoji Oops popup upon Sign Out
   const [showSadSignOutPopup, setShowSadSignOutPopup] = useState<boolean>(false);
+
+  // Exact Replicated Opening / Loading Animation State (Replicates Reference Video)
+  const [showIntroAnimation, setShowIntroAnimation] = useState<boolean>(true);
+
 
   // Persistent Auth State
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
@@ -3646,10 +3652,16 @@ export default function App() {
       }}
       className="relative h-screen w-full overflow-hidden bg-exact-warm flex flex-col"
     >
+      {/* Exact Replicated Reference Video Opening / Loading Experience */}
+      {showIntroAnimation && (
+        <WebsiteIntroAnimation onComplete={() => setShowIntroAnimation(false)} />
+      )}
+
       {/* 
         Aesthetic Parchment Paper Texture Layer:
         - Visible immediately upon load
       */}
+
       <div
         className="pointer-events-none fixed -inset-4 bg-cover bg-center bg-no-repeat opacity-[0.24] mix-blend-multiply blur-[1px]"
         style={{
