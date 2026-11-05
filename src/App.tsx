@@ -34,7 +34,6 @@ import {
   buildShareContent,
   recordReferralRedemption,
 } from './services/referralService';
-import { WebsiteIntroAnimation } from './components/WebsiteIntroAnimation';
 
 
 // Synthesize real crisp party-popper celebration sound via Web Audio API
@@ -201,6 +200,16 @@ const SOCIAL_LINKS = [
   },
 ];
 
+// Universal Non-Intrusive Toast System
+export interface ToastNotification {
+  id: string;
+  title: string;
+  message?: string;
+  type?: 'success' | 'info' | 'warning' | 'error';
+  icon?: string;
+  duration?: number;
+}
+
 // Liquid Glass Community Feedback Data System
 interface FeedbackItem {
   id: string;
@@ -296,6 +305,45 @@ const AVAILABLE_TIMES = [
   '06:30 PM',
 ];
 
+interface CallTypeOption {
+  id: string;
+  title: string;
+  price: string;
+  description: string;
+  animationClass: string;
+}
+
+const CALL_TYPES: CallTypeOption[] = [
+  {
+    id: 'live-chat',
+    title: 'Live Chat',
+    price: '₹1/Min',
+    description: 'Instant text messaging for quick queries and support.',
+    animationClass: 'animate-call-chat-loop',
+  },
+  {
+    id: 'voice-call',
+    title: 'Voice Call',
+    price: '₹3/Min',
+    description: 'Direct 1-on-1 audio call for clear project discussion.',
+    animationClass: 'animate-call-voice-loop',
+  },
+  {
+    id: 'video-call',
+    title: 'Video Call',
+    price: '₹7/Min',
+    description: 'Face-to-face screen share and interactive tech guidance.',
+    animationClass: 'animate-call-video-loop',
+  },
+  {
+    id: 'custom-call',
+    title: 'Custom Call',
+    price: '₹49/Min',
+    description: 'Combine multiple services and pick your preferred date.',
+    animationClass: 'animate-call-calendar-loop',
+  },
+];
+
 // Universal Dead-Center Required Field Popup Component (Disabled as requested)
 const RequiredToastCenter: React.FC<{ show: boolean; message?: string }> = () => {
   return null;
@@ -384,11 +432,23 @@ const SwipeableModalCard: React.FC<SwipeableModalCardProps> = ({
   };
 
   return (
-    <div
+    <motion.div
       ref={cardRef}
       role={role}
       aria-modal={ariaModal}
       aria-labelledby={ariaLabelledBy}
+      initial={isClosing ? false : { opacity: 0, scale: 0.94, y: 18, filter: 'blur(4px)' }}
+      animate={
+        isClosing
+          ? { opacity: 0, scale: 0.92, y: 20, filter: 'blur(5px)' }
+          : { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }
+      }
+      transition={{
+        type: 'spring',
+        stiffness: 380,
+        damping: 28,
+        mass: 0.85,
+      }}
       onClick={onClick || ((e) => e.stopPropagation())}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -397,7 +457,6 @@ const SwipeableModalCard: React.FC<SwipeableModalCardProps> = ({
       style={{
         ...style,
         transform: offsetY > 0 ? `translate3d(0, ${offsetY}px, 0)` : undefined,
-        transition: isSwiping ? 'none' : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
         touchAction: 'pan-y',
       }}
       className={className}
@@ -409,7 +468,7 @@ const SwipeableModalCard: React.FC<SwipeableModalCardProps> = ({
         />
       )}
       {children}
-    </div>
+    </motion.div>
   );
 };
 
@@ -431,8 +490,6 @@ export default function App() {
   // Fullscreen Sad Emoji Oops popup upon Sign Out
   const [showSadSignOutPopup, setShowSadSignOutPopup] = useState<boolean>(false);
 
-  // Exact Uploaded Video Intro Opening Animation State
-  const [showIntroAnimation, setShowIntroAnimation] = useState<boolean>(true);
 
   // Persistent Auth State
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
@@ -521,6 +578,9 @@ export default function App() {
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
   const [isBookingModalClosing, setIsBookingModalClosing] = useState<boolean>(false);
+  const [bookingStep, setBookingStep] = useState<number>(1);
+  const [selectedCallType, setSelectedCallType] = useState<string | null>(null);
+  const [isTransitioningStep, setIsTransitioningStep] = useState<boolean>(false);
 
   const [isMyBookingsModalOpen, setIsMyBookingsModalOpen] = useState<boolean>(false);
   const [isMyBookingsModalClosing, setIsMyBookingsModalClosing] = useState<boolean>(false);
@@ -550,6 +610,7 @@ export default function App() {
   const [donationAmountType, setDonationAmountType] = useState<'preset' | 'any'>('any');
   const [selectedPresetAmount, setSelectedPresetAmount] = useState<number | null>(null);
   const [customDonationAmount, setCustomDonationAmount] = useState<string>('');
+  const [hasInteractedWithAmount, setHasInteractedWithAmount] = useState<boolean>(false);
   const [donationQrDataUrl, setDonationQrDataUrl] = useState<string>('');
   const [showDonationThankYou, setShowDonationThankYou] = useState<boolean>(false);
   const [isDonationThankYouClosing, setIsDonationThankYouClosing] = useState<boolean>(false);
@@ -636,15 +697,17 @@ export default function App() {
         width: 520,
         margin: 2,
         errorCorrectionLevel: 'M',
-        color: { dark: '#241407', light: '#ffffff' },
+        color: { dark: '#000000', light: '#ffffff' },
       })
         .then((url) => {
-          if (isMounted) setDonationQrDataUrl(url);
+          if (isMounted) {
+            setDonationQrDataUrl(url);
+          }
         })
         .catch((err) => {
           console.warn('Donation QR generation error:', err);
         });
-    }, 180);
+    }, 60);
 
     return () => {
       isMounted = false;
@@ -652,7 +715,7 @@ export default function App() {
         clearTimeout(qrDebounceTimerRef.current);
       }
     };
-  }, [activeDonationAmount, currentDonationUpiUri, isDonateModalOpen, donationQrDataUrl]);
+  }, [activeDonationAmount, currentDonationUpiUri, isDonateModalOpen]);
 
   const handleCopyUpiId = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -686,6 +749,84 @@ export default function App() {
     }, 1800);
   };
 
+  // 1. Direct URL Route Detection for "/pay" (e.g. https://funzytech.github.io/1-1/pay or /pay or #/pay)
+  useEffect(() => {
+    const checkPayRoute = () => {
+      try {
+        const path = (window.location.pathname || '').toLowerCase();
+        const hash = (window.location.hash || '').toLowerCase();
+        const search = (window.location.search || '').toLowerCase();
+
+        const isPayPath =
+          path.endsWith('/pay') ||
+          path.endsWith('/pay/') ||
+          path.includes('/pay') ||
+          hash.includes('pay') ||
+          search.includes('route=pay') ||
+          search.includes('pay=1');
+
+        if (isPayPath) {
+          // Cleanly and directly open Donate Now section on page load without opening any other popup
+          setSelectedPresetAmount(null);
+          setCustomDonationAmount('');
+          setHasInteractedWithAmount(false);
+          setDonationAmountType('any');
+          setIsDonateModalOpen(true);
+          setIsDonateModalClosing(false);
+        }
+      } catch (err) {
+        console.warn('Pay route check failed:', err);
+      }
+    };
+
+    checkPayRoute();
+
+    window.addEventListener('popstate', checkPayRoute);
+    window.addEventListener('hashchange', checkPayRoute);
+    return () => {
+      window.removeEventListener('popstate', checkPayRoute);
+      window.removeEventListener('hashchange', checkPayRoute);
+    };
+  }, []);
+
+  // 2. Silent Screenshot & Screen Recording Protection System:
+  // Controlled silently in the background (no frontend alerts, error messages, or visual banners)
+  useEffect(() => {
+    if (!isDonateModalOpen || isDonateModalClosing) {
+      document.body.classList.remove('donate-protection-active');
+      return;
+    }
+
+    // Activate defensive mode on document body
+    document.body.classList.add('donate-protection-active');
+
+    // Defensive keystroke interception (PrintScreen, Win+Shift+S, Cmd+Shift+3/4/5)
+    const handleCaptureKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'PrintScreen' ||
+        e.code === 'PrintScreen' ||
+        ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 's' || e.key === 'S' || e.key === '3' || e.key === '4' || e.key === '5'))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    // Context menu / right-click image save protection inside donate modal
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener('keydown', handleCaptureKeyDown, true);
+    document.addEventListener('contextmenu', handleContextMenu, true);
+
+    return () => {
+      document.body.classList.remove('donate-protection-active');
+      window.removeEventListener('keydown', handleCaptureKeyDown, true);
+      document.removeEventListener('contextmenu', handleContextMenu, true);
+    };
+  }, [isDonateModalOpen, isDonateModalClosing]);
+
   // Lock background page scrolling when payment modal is active
   useEffect(() => {
     if (isDonateModalOpen) {
@@ -704,6 +845,7 @@ export default function App() {
     triggerHaptic(15);
     setSelectedPresetAmount(null);
     setCustomDonationAmount('');
+    setHasInteractedWithAmount(false);
     setDonationAmountType('any');
     setIsDonateModalOpen(true);
     setIsDonateModalClosing(false);
@@ -712,6 +854,7 @@ export default function App() {
   // Handler when user selects a preset amount
   const handleSelectPresetAmount = (amt: number) => {
     triggerHaptic(12);
+    setHasInteractedWithAmount(true);
     setSelectedPresetAmount(amt);
     setCustomDonationAmount('');
     setDonationAmountType('preset');
@@ -720,6 +863,7 @@ export default function App() {
   // Handler when user selects custom amount
   const handleCustomAmountChange = (raw: string) => {
     const sanitized = raw.replace(/[^0-9]/g, '');
+    setHasInteractedWithAmount(true);
     setCustomDonationAmount(sanitized);
     setSelectedPresetAmount(null);
     setDonationAmountType('any');
@@ -1197,6 +1341,12 @@ export default function App() {
       localStorage.setItem('funzy_tech_user_avatar', url);
     } catch {}
     closeScreenWithHistory('avatar');
+    showToast({
+      title: 'Profile Updated',
+      message: 'Avatar updated successfully.',
+      type: 'success',
+      icon: '👤',
+    });
   };
 
   const handleRemoveAvatar = () => {
@@ -1998,6 +2148,27 @@ export default function App() {
     }
   };
 
+  // Universal Toast Notification System
+  const [toasts, setToasts] = useState<ToastNotification[]>([]);
+
+  const showToast = useCallback((toast: { title: string; message?: string; type?: 'success' | 'info' | 'warning' | 'error'; icon?: string; duration?: number }) => {
+    const id = 'toast-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    const newToast: ToastNotification = {
+      id,
+      duration: toast.duration ?? 4000,
+      type: toast.type ?? 'success',
+      ...toast,
+    };
+    setToasts((prev) => [newToast, ...prev.slice(0, 2)]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, newToast.duration);
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   const [referralToast, setReferralToast] = useState<{
     message: string;
     type: 'success' | 'info' | 'error';
@@ -2113,6 +2284,12 @@ export default function App() {
     saveBookings(updated);
     setBookingConfirmedRecord(newBooking);
     setBookingFormError('');
+    showToast({
+      title: 'Booking Confirmed! 🎉',
+      message: `${newBooking.topic} • ${newBooking.date} at ${newBooking.time}`,
+      type: 'success',
+      icon: '📅',
+    });
   };
 
   // My Bookings Verification & Access State
@@ -2373,6 +2550,9 @@ export default function App() {
         setIsDonationThankYouClosing(false);
         break;
       case 'booking':
+        setBookingStep(1);
+        setSelectedCallType(null);
+        setIsTransitioningStep(false);
         setIsBookingModalOpen(true);
         setIsBookingModalClosing(false);
         break;
@@ -2521,6 +2701,9 @@ export default function App() {
         if (onFinished) onFinished();
         break;
       case 'booking':
+        setSelectedCallType(null);
+        setBookingStep(1);
+        setIsTransitioningStep(false);
         closeModalAnimated(setIsBookingModalClosing, setIsBookingModalOpen, onFinished);
         break;
       case 'my-bookings':
@@ -3636,19 +3819,28 @@ export default function App() {
   };
 
 
-  // Confirm Contribution celebratory event
+  // Confirm Contribution celebratory event:
+  // Celebratory confetti animation triggers immediately upon clicking 'I've Completed My Donation'
   const handleConfirmContribution = () => {
+    // 1. Immediate celebratory confetti burst inside the donation modal for crisp visual confirmation
+    try {
+      confetti({
+        particleCount: 75,
+        spread: 70,
+        origin: { y: 0.62 },
+        colors: ['#f59e0b', '#d97706', '#10b981', '#f43f5e', '#8b5cf6', '#3b82f6'],
+      });
+    } catch {}
+
+    // 2. Play party popper celebratory sound
     try {
       playPartyPopperSound();
     } catch {}
-    try {
-      confetti({
-        particleCount: 90,
-        spread: 80,
-        origin: { y: 0.6 },
-      });
-    } catch {}
-    openScreenWithHistory('donate-thanks', 'donate');
+
+    // 3. Transition into the thank-you confirmation card
+    setTimeout(() => {
+      openScreenWithHistory('donate-thanks', 'donate');
+    }, 280);
   };
 
   return (
@@ -3659,10 +3851,6 @@ export default function App() {
       }}
       className="relative h-screen w-full overflow-hidden bg-exact-warm flex flex-col"
     >
-      {/* Uploaded Intro Video Opening Experience */}
-      {showIntroAnimation && (
-        <WebsiteIntroAnimation onComplete={() => setShowIntroAnimation(false)} />
-      )}
 
       {/* 
         Aesthetic Parchment Paper Texture Layer:
@@ -5341,49 +5529,239 @@ export default function App() {
             e.stopPropagation();
             closeScreenWithHistory('booking');
           }}
-          className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md ${
+          className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-md ${
             isBookingModalClosing ? 'animate-contact-backdrop-close' : 'animate-contact-backdrop'
           }`}
           role="dialog"
           aria-modal="true"
         >
-          <SwipeableModalCard 
-            onClose={() => closeScreenWithHistory('booking')}
-            isClosing={isBookingModalClosing}
-            className={`liquid-glass-menu relative w-full max-w-[540px] sm:max-w-[580px] rounded-[28px] p-5 sm:p-6 shadow-[0_24px_50px_-12px_rgba(95,70,40,0.38)] overflow-hidden flex flex-col max-h-[92vh] ${
-              isBookingModalClosing ? 'animate-contact-modal-close' : 'animate-contact-modal'
-            }`}
-          >
-            <div className="glass-glow-rim" aria-hidden="true" />
-            
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#a68d6a]/25 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100/90 border border-white/90 shadow-xs text-[#4a321f] animate-call-loop">
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-['Outfit',sans-serif] font-black text-lg text-[#261508] leading-tight">
-                    Book a 1-on-1 Call
-                  </h3>
-                  <p className="text-[11px] text-[#7d644d] font-medium">
-                    Private consultation with Shiv Kumar • Funzy Tech
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeScreenWithHistory('booking');
-                }}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/70 hover:bg-white text-[#4a321f] transition-all cursor-pointer shadow-xs border border-white/80 active:scale-95"
+          <AnimatePresence mode="wait" initial={false}>
+            {bookingStep === 1 ? (
+              <motion.div
+                key="booking-step-1"
+                initial={{ opacity: 0, scale: 0.96, y: 12, filter: 'blur(3px)' }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, scale: 0.95, y: -10, filter: 'blur(4px)' }}
+                transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full flex items-center justify-center pointer-events-auto"
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
-            </div>
+                <SwipeableModalCard 
+                  onClose={() => closeScreenWithHistory('booking')}
+                  isClosing={isBookingModalClosing}
+                  className={`liquid-glass-menu relative w-full max-w-[500px] sm:max-w-[530px] rounded-[28px] p-4.5 sm:p-5.5 shadow-[0_24px_50px_-12px_rgba(95,70,40,0.38)] overflow-hidden flex flex-col ${
+                    isBookingModalClosing ? 'animate-contact-modal-close' : 'animate-contact-modal'
+                  }`}
+                >
+                  <div className="glass-glow-rim" aria-hidden="true" />
+
+                  {/* Header with Animated Logo Badge, Title & Description (Matching My Bookings Layout) */}
+                  <div className="flex items-center justify-between pb-3 border-b border-[#a68d6a]/25 shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8.5 w-8.5 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-amber-100/90 border border-white/90 shadow-xs text-[#4a321f] animate-call-loop shrink-0">
+                        <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="font-['Outfit',sans-serif] font-black text-lg sm:text-[19px] text-[#261508] leading-tight">
+                          Choose Your Call Type
+                        </h3>
+                        <p className="text-[11px] sm:text-[12px] text-[#7d644d] font-medium">
+                          Select how you'd like to connect with us.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        triggerHaptic(10);
+                        closeScreenWithHistory('booking');
+                      }}
+                      aria-label="Close dialog"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/70 hover:bg-white text-[#4a321f] transition-all cursor-pointer shadow-xs border border-white/80 active:scale-95 shrink-0"
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Four Call Type Cards in 2×2 Grid — Proper Balanced Rounded Squares */}
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 my-2.5">
+                    {CALL_TYPES.map((card) => {
+                      const isSelected = selectedCallType === card.id;
+                      return (
+                        <button
+                          key={card.id}
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic(12);
+                            // Tapping selected card unselects it as requested
+                            setSelectedCallType((prev) => (prev === card.id ? null : card.id));
+                          }}
+                          aria-pressed={isSelected}
+                          className={`group relative rounded-[22px] sm:rounded-[26px] p-3.5 sm:p-4 text-left transition-all duration-300 ease-out cursor-pointer active:scale-[0.98] border flex flex-col justify-between aspect-[1/0.98] sm:aspect-square ${
+                            isSelected
+                              ? 'bg-[#fffdf9]/95 border-amber-600/90 ring-2 ring-amber-500/45 shadow-[0_12px_28px_-4px_rgba(217,119,6,0.32)] scale-[1.035] sm:scale-[1.04] z-10'
+                              : 'bg-white/65 hover:bg-white/85 border-white/85 shadow-2xs hover:shadow-xs hover:border-amber-200/50 scale-100 hover:scale-[1.01]'
+                          }`}
+                        >
+                          {/* 1. Icon at the top (with price pill at top-right) */}
+                          <div className="flex items-start justify-between w-full">
+                            {/* Animated Icon */}
+                            <div className={`flex h-8.5 w-8.5 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl border shadow-2xs transition-all duration-300 ${
+                              isSelected 
+                                ? 'bg-amber-100/95 border-amber-300 text-amber-950 scale-105' 
+                                : 'bg-amber-100/70 border-amber-200/60 text-[#4a321f] group-hover:scale-105'
+                            } ${card.animationClass}`}>
+                              {card.id === 'live-chat' && (
+                                <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                </svg>
+                              )}
+                              {card.id === 'voice-call' && (
+                                <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                                </svg>
+                              )}
+                              {card.id === 'video-call' && (
+                                <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polygon points="23 7 16 12 23 17 23 7" />
+                                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                                </svg>
+                              )}
+                              {(card.id === 'custom-call' || card.id === 'scheduled-call') && (
+                                <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                  <line x1="16" y1="2" x2="16" y2="6" />
+                                  <line x1="8" y1="2" x2="8" y2="6" />
+                                  <line x1="3" y1="10" x2="21" y2="10" />
+                                  <circle cx="12" cy="15" r="2" />
+                                </svg>
+                              )}
+                            </div>
+
+                            {/* Price positioned in top-right corner pill */}
+                            <span className={`shrink-0 font-['Outfit',sans-serif] font-black text-[11px] sm:text-[12.5px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border transition-colors ${
+                              isSelected
+                                ? 'bg-amber-100/95 border-amber-300 text-amber-950 shadow-2xs'
+                                : 'bg-amber-50/90 border-amber-200/70 text-amber-900'
+                            }`}>
+                              {card.price}
+                            </span>
+                          </div>
+
+                          {/* 2. Title directly below the icon & 3. Description directly below the title */}
+                          <div className="flex flex-col text-left w-full mt-2 sm:mt-2.5">
+                            <span className="font-['Outfit',sans-serif] font-black text-[13.5px] sm:text-[15.5px] text-[#261508] leading-tight tracking-tight">
+                              {card.title}
+                            </span>
+                            <p className="text-[11px] sm:text-[12px] text-[#7d644d] font-medium leading-[1.38] sm:leading-[1.44] mt-1 sm:mt-1.5">
+                              {card.description}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Continue Button at Bottom with Slow Smooth Fade-out Effect */}
+                  <div className="pt-2.5 sm:pt-3">
+                    <button
+                      type="button"
+                      disabled={!selectedCallType || isTransitioningStep}
+                      onClick={() => {
+                        if (!selectedCallType || isTransitioningStep) return;
+                        setIsTransitioningStep(true);
+                        triggerHaptic(15);
+                        const found = CALL_TYPES.find(c => c.id === selectedCallType);
+                        if (found) {
+                          setBookingTopic(found.title + ' Consultation');
+                        }
+                        setBookingStep(2);
+                        setTimeout(() => {
+                          setIsTransitioningStep(false);
+                        }, 350);
+                      }}
+                      className={`w-full py-2.5 sm:py-3 rounded-xl font-['Outfit',sans-serif] font-bold text-xs sm:text-sm flex items-center justify-center transition-all duration-700 ease-in-out ${
+                        selectedCallType && !isTransitioningStep
+                          ? 'opacity-100 bg-gradient-to-r from-[#3e2714] to-[#261508] text-white shadow-md hover:brightness-110 active:scale-98 cursor-pointer border border-white/20'
+                          : 'opacity-35 cursor-not-allowed pointer-events-none bg-stone-300 text-stone-600 shadow-none border border-transparent scale-[0.99]'
+                      }`}
+                    >
+                      <span>Continue</span>
+                      <AnimatePresence>
+                        {selectedCallType && (
+                          <motion.span
+                            initial={{ opacity: 0, x: -6, width: 0 }}
+                            animate={{ opacity: 1, x: 0, width: 'auto' }}
+                            exit={{ opacity: 0, x: -6, width: 0 }}
+                            transition={{ duration: 0.5, ease: 'easeInOut' }}
+                            className="inline-block ml-1.5 font-bold animate-arrow-nudge overflow-hidden"
+                          >
+                            →
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </button>
+                  </div>
+                </SwipeableModalCard>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="booking-step-2"
+                initial={{ opacity: 0, scale: 0.96, y: 12, filter: 'blur(3px)' }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, scale: 0.95, y: -10, filter: 'blur(4px)' }}
+                transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full flex items-center justify-center pointer-events-auto"
+              >
+                <SwipeableModalCard 
+                  onClose={() => closeScreenWithHistory('booking')}
+                  isClosing={isBookingModalClosing}
+                  className={`liquid-glass-menu relative w-full max-w-[540px] sm:max-w-[580px] rounded-[28px] p-5 sm:p-6 shadow-[0_24px_50px_-12px_rgba(95,70,40,0.38)] overflow-hidden flex flex-col max-h-[92vh] ${
+                    isBookingModalClosing ? 'animate-contact-modal-close' : 'animate-contact-modal'
+                  }`}
+                >
+                  <div className="glass-glow-rim" aria-hidden="true" />
+                  
+                  {/* Header — Back Button Only (No Cut/Close Icon) */}
+                  <div className="flex items-center pb-3 border-b border-[#a68d6a]/25 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isTransitioningStep}
+                        onClick={() => {
+                          if (isTransitioningStep) return;
+                          setIsTransitioningStep(true);
+                          triggerHaptic(10);
+                          setBookingStep(1);
+                          setTimeout(() => {
+                            setIsTransitioningStep(false);
+                          }, 350);
+                        }}
+                        className="flex items-center gap-1.5 text-[11.5px] font-bold text-[#4a321f] bg-white/70 hover:bg-white px-2.5 py-1.5 rounded-xl border border-white/80 transition-all cursor-pointer shadow-xs active:scale-95"
+                        title="Back to Call Selection"
+                      >
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m15 18-6-6 6-6"/>
+                        </svg>
+                        <span>Back</span>
+                      </button>
+                      <div>
+                        <h3 className="font-['Outfit',sans-serif] font-black text-lg text-[#261508] leading-tight">
+                          Book a 1-on-1 Call
+                        </h3>
+                        <p className="text-[11px] text-[#7d644d] font-medium">
+                          {selectedCallType 
+                            ? `${CALL_TYPES.find(c => c.id === selectedCallType)?.title} • ${CALL_TYPES.find(c => c.id === selectedCallType)?.price}`
+                            : 'Private consultation with Shiv Kumar • Funzy Tech'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
             {/* Content Body */}
             <div className="flex-1 overflow-y-auto overscroll-contain pr-1 py-3 scrollbar-none flex flex-col gap-3.5">
@@ -5671,6 +6049,9 @@ export default function App() {
               )}
             </div>
           </SwipeableModalCard>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -6207,7 +6588,7 @@ export default function App() {
           <SwipeableModalCard 
             onClose={() => closeScreenWithHistory('donate')}
             isClosing={isDonateModalClosing}
-            className={`liquid-glass-menu relative w-full max-w-[380px] sm:max-w-[400px] rounded-[24px] p-3.5 sm:p-4 shadow-[0_24px_50px_-12px_rgba(95,70,40,0.38)] flex flex-col gap-2 overflow-hidden ${
+            className={`liquid-glass-menu donate-protected-content relative w-full max-w-[380px] sm:max-w-[400px] rounded-[24px] p-3.5 sm:p-4 shadow-[0_24px_50px_-12px_rgba(95,70,40,0.38)] flex flex-col gap-2 overflow-hidden ${
               isDonateModalClosing ? 'animate-about-modal-close' : 'animate-contact-modal'
             }`}
           >
@@ -6259,11 +6640,11 @@ export default function App() {
                       onClick={() => handleSelectPresetAmount(amt)}
                       className={`py-1 px-0.5 rounded-lg text-xs font-bold font-['Outfit',sans-serif] transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 border ${
                         isSelected
-                          ? 'bg-[#2c1708] text-white border-black shadow-xs scale-102'
-                          : 'bg-white/70 hover:bg-white text-[#382312] border-white/90'
+                          ? 'bg-[#2c1708] text-white border-black shadow-xs scale-102 ring-1 ring-amber-400/50'
+                          : 'bg-white/75 hover:bg-white text-[#382312] border-white/90 hover:scale-[1.01]'
                       }`}
                     >
-                      ₹{amt}
+                      <span>₹{amt}</span>
                     </button>
                   );
                 })}
@@ -6280,10 +6661,10 @@ export default function App() {
                   setSelectedPresetAmount(null);
                   setCustomDonationAmount('');
                 }}
-                className={`py-1.5 px-2 rounded-lg text-[10.5px] font-extrabold font-['Outfit',sans-serif] transition-all cursor-pointer shadow-2xs active:scale-95 border shrink-0 ${
+                className={`py-1.5 px-2 rounded-lg text-[10.5px] font-extrabold font-['Outfit',sans-serif] transition-all duration-200 cursor-pointer shadow-2xs active:scale-95 border shrink-0 ${
                   donationAmountType === 'any'
-                    ? 'bg-[#2c1708] text-white border-black'
-                    : 'bg-white/70 hover:bg-white text-[#382312] border-white/90'
+                    ? 'bg-[#2c1708] text-white border-black ring-1 ring-amber-400/50'
+                    : 'bg-white/75 hover:bg-white text-[#382312] border-white/90'
                 }`}
               >
                 Any Amount
@@ -6300,19 +6681,22 @@ export default function App() {
                     setSelectedPresetAmount(null);
                   }}
                   onChange={(e) => handleCustomAmountChange(e.target.value)}
-                  className="w-full pl-6 pr-2.5 py-1.5 rounded-lg bg-white/90 border border-white/95 text-xs font-bold text-[#261508] placeholder-[#9c8269] shadow-2xs focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                  className="w-full pl-6 pr-2.5 py-1.5 rounded-lg bg-white/90 border border-white/95 text-xs font-bold text-[#261508] placeholder-[#9c8269] shadow-2xs focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all duration-200"
                 />
               </div>
             </div>
 
 
-            {/* 3. LARGE DONATION QR CODE */}
-            <div className={`relative w-full ${isDesktopDevice ? 'max-w-[250px] sm:max-w-[270px]' : 'max-w-[220px] sm:max-w-[240px]'} aspect-square mx-auto flex items-center justify-center p-2 bg-white rounded-2xl border border-[#a68d6a]/25 shadow-xs shrink-0`}>
+            {/* 3. LARGE DONATION QR CODE (Original Crisp Black, No Whitening or Glitches) */}
+            <div className={`relative w-full ${isDesktopDevice ? 'max-w-[250px] sm:max-w-[270px]' : 'max-w-[220px] sm:max-w-[240px]'} aspect-square mx-auto flex items-center justify-center p-2 bg-white rounded-2xl border border-[#a68d6a]/25 shadow-xs shrink-0 overflow-hidden`}>
               {donationQrDataUrl ? (
                 <img
+                  id="donation-qr-image"
                   src={donationQrDataUrl}
                   alt="Payment QR Code"
-                  className="w-full h-full object-contain rounded-lg select-none block"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                  className="w-full h-full object-contain rounded-lg select-none block pointer-events-auto"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -6373,7 +6757,9 @@ export default function App() {
                   triggerHaptic(18);
                   handleConfirmContribution();
                 }}
-                className="w-full py-2 px-4 rounded-xl bg-white/85 hover:bg-white text-[#2c1708] font-['Outfit',sans-serif] font-black text-xs shadow-2xs active:scale-95 transition-all text-center cursor-pointer border border-[#a68d6a]/40 select-none"
+                className={`w-full py-2 px-4 rounded-xl font-['Outfit',sans-serif] font-black text-xs shadow-2xs active:scale-95 transition-all text-center cursor-pointer border select-none bg-white/85 hover:bg-white text-[#2c1708] border-[#a68d6a]/40 ${
+                  hasInteractedWithAmount ? 'animate-donation-heartbeat shadow-md' : ''
+                }`}
               >
                 I've Completed My Donation
               </button>
@@ -7334,6 +7720,49 @@ export default function App() {
           </div>
         </aside>
       )}
+      {/* Universal Non-Intrusive Toast Notification System */}
+      <div
+        className="fixed top-4 right-4 sm:right-6 left-4 sm:left-auto sm:max-w-sm z-[200] pointer-events-none flex flex-col gap-2.5"
+        role="region"
+        aria-label="Notifications"
+      >
+        <AnimatePresence>
+          {toasts.map((toast) => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, y: -16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12, scale: 0.95 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="pointer-events-auto"
+            >
+              <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-[#fffcf5]/95 backdrop-blur-xl border border-amber-400/70 shadow-[0_12px_32px_rgba(115,88,48,0.28)] text-[#261508]">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="text-lg shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-amber-400/20 text-amber-900 border border-amber-400/40 shadow-xs">
+                    {toast.icon || (toast.type === 'success' ? '✓' : 'ℹ')}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black tracking-tight leading-snug">{toast.title}</p>
+                    {toast.message && (
+                      <p className="text-[11px] text-[#593e28] font-medium leading-tight truncate max-w-[240px]">
+                        {toast.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeToast(toast.id)}
+                  className="shrink-0 h-6 w-6 rounded-full flex items-center justify-center bg-black/5 hover:bg-black/10 text-[#6e533b] text-xs font-black cursor-pointer active:scale-95 transition-all"
+                  aria-label="Close notification"
+                >
+                  ✕
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

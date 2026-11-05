@@ -275,6 +275,62 @@
   will-change: transform, opacity, filter;
 }
 
+/* Subtle, heartbeat-like pulsing animation for the donation confirmation button */
+@keyframes donationHeartbeatPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(95, 70, 40, 0.12);
+  }
+  14% {
+    transform: scale(1.026);
+    box-shadow: 0 4px 16px rgba(217, 119, 6, 0.28), 0 0 0 1.5px rgba(217, 119, 6, 0.35);
+  }
+  28% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(95, 70, 40, 0.12);
+  }
+  42% {
+    transform: scale(1.018);
+    box-shadow: 0 3px 12px rgba(217, 119, 6, 0.22), 0 0 0 1px rgba(217, 119, 6, 0.25);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(95, 70, 40, 0.12);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(95, 70, 40, 0.12);
+  }
+}
+
+.animate-donation-heartbeat {
+  animation: donationHeartbeatPulse 1.75s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+/* 
+  Donate Section Screenshot & Screen-Recording Protection (Multi-layer defensive CSS):
+  - Completely hides sensitive QR content on print/PDF export
+  - Disables drag-and-drop or callout saving on mobile browsers
+  - Uses CSS privacy shields when capturing tools attempt print dialog
+*/
+@media print {
+  body.donate-protection-active {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  .donate-protected-content {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
+.donate-protected-content {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-liquid-menu-open,
   .animate-liquid-menu-close {
@@ -416,6 +472,8 @@
 
 /* Dedicated Glass-Morphism Dropdown Panel (No extra stroke, delicate glass physics only) */
 .glass-dropdown-panel {
+  position: relative;
+  isolation: isolate;
   background: linear-gradient(180deg, rgba(255, 252, 246, 0.88) 0%, rgba(248, 240, 226, 0.72) 50%, rgba(240, 228, 208, 0.84) 100%);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -1266,6 +1324,76 @@
   transform-origin: center center;
 }
 
+/* Call Type Popup 1 Subtle Animated Icons */
+@keyframes chatBubblePulse {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  35% {
+    transform: translateY(-2px) scale(1.06);
+  }
+  70% {
+    transform: translateY(0.5px) scale(0.99);
+  }
+}
+.animate-call-chat-loop {
+  animation: chatBubblePulse 2.8s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes voicePhoneWave {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  15% {
+    transform: rotate(-10deg) scale(1.08);
+  }
+  30% {
+    transform: rotate(10deg) scale(1.08);
+  }
+  45% {
+    transform: rotate(-6deg) scale(1.04);
+  }
+  60% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+.animate-call-voice-loop {
+  animation: voicePhoneWave 3.2s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes videoCamShimmer {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(217, 119, 6, 0));
+  }
+  50% {
+    transform: scale(1.07);
+    filter: drop-shadow(0 2px 6px rgba(217, 119, 6, 0.35));
+  }
+}
+.animate-call-video-loop {
+  animation: videoCamShimmer 3s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes calendarClockTick {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  30% {
+    transform: rotate(8deg) scale(1.05);
+  }
+  60% {
+    transform: rotate(-4deg) scale(1.02);
+  }
+}
+.animate-call-calendar-loop {
+  animation: calendarClockTick 3.4s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  transform-origin: center center;
+}
+
 @keyframes iconEmailBounce {
   0%, 100% {
     transform: translateY(0px) scale(1);
@@ -2042,4 +2170,86 @@
 .animate-guest-blink {
   animation: guestEyeBlink 4.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
   will-change: transform, opacity;
+}
+
+/* ========================================================================= */
+/* BOOK A CALL POPUP 1 — SUBTLE CONTINUOUS CARD & BUTTON ANIMATIONS          */
+/* ========================================================================= */
+
+@keyframes chatBubblePulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1.5px) scale(1.05);
+  }
+}
+
+.animate-call-chat-loop {
+  animation: chatBubblePulse 2.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes voicePhoneWave {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-6deg) scale(1.04);
+  }
+  75% {
+    transform: rotate(5deg) scale(1.04);
+  }
+}
+
+.animate-call-voice-loop {
+  animation: voicePhoneWave 3.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes videoCamShimmer {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+.animate-call-video-loop {
+  animation: videoCamShimmer 2.6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes calendarClockTick {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-1px) rotate(4deg);
+  }
+  70% {
+    transform: translateY(0.5px) rotate(-3deg);
+  }
+}
+
+.animate-call-calendar-loop {
+  animation: calendarClockTick 3.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes arrowNudge {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+.animate-arrow-nudge {
+  animation: arrowNudge 1.6s ease-in-out infinite;
+  will-change: transform;
 }

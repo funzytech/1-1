@@ -1,32 +1,57 @@
-# Implementation Plan: Master Admin Panel Access Control & UI Polish
+# Implementation Plan: Book a Call | Popup 1 — 3-Line Descriptions & Card Layout Alignment
 
 ## Overview
-Implemented ultra-strict invisible security sequence authentication for the Admin Panel, server-side password verification, two-stage physical gesture verification, 7-second inactivity verification period, and UI polish (liquid menu animation with progressive blur and removal of large static emoji in donation completion modal).
+This plan implements the requested updates to **Popup 1** (Call Type Selection) inside the existing **Book a Call** flow of Funzy Tech:
+1. Increase description text in all four call type boxes to properly fill the available space.
+2. Structure all four boxes with the exact order: **Icon at top** (with price pill at top-right) → **Title directly below icon** → **Description directly below title**.
+3. Format descriptions across **strictly 3 lines** across all 4 boxes (Live Chat, Voice Call, Video Call, and Custom Call) with uniform vertical alignment and no clipping.
+4. Use professionally crafted English descriptions matching the website's tech & design consultancy tone (as confirmed in clarifying question turn).
 
-## Key Implementation Details
+---
 
-1. **Ultra-Strict First-Stage Secret Gesture Sequence (Admin Button Trigger)**:
-   - **Step 1**: Exactly 3 consecutive clicks (<800ms cadence).
-   - **Step 2**: Within 3 seconds of Step 1, perform a continuous 7-second long press (7000ms). Premature release silently resets.
-   - **Step 3**: Within 3 seconds of Step 2, click the trigger exactly 3 consecutive times (<800ms cadence).
-   - **Step 4**: Within 3 seconds of Step 3, click the trigger exactly once.
-   - **Enforcement**: Strictly resets silently on any timeout, unexpected click, or premature release. No visual hints or indicators.
+## 1. Description Copy (Strict 3-Line Formatting)
 
-2. **Admin Panel Password Verification (Server-Side)**:
-   - Strict 15-second timeout initiated immediately when modal opens.
-   - Server-side validation via `/api/admin/auth/start` (initiates 15s server session) and `/api/admin/auth/verify-char` (character-by-character prefix check without exposing password in client JS).
-   - Any incorrect character, space, or timeout closes the modal immediately and silently.
-   - On full match, virtual keyboard is preserved without auto-dismissal.
+Each description is crafted to comfortably fill 3 visual lines within the cards:
 
-3. **Second-Stage Verification (Continue Button Trigger)**:
-   - **Step 1**: Exactly 3 consecutive clicks.
-   - **Step 2**: Within 3 seconds, continuous 7-second long press.
-   - **Step 3**: Within 3 seconds, exactly 3 consecutive clicks.
-   - **Step 4**: Within 3 seconds, exactly 1 click.
-   - **Inactivity Period**: Hidden 7-second period with global window capturing listeners. Any pointerdown, touchstart, keydown, or wheel event immediately invalidates and closes.
-   - **Direct Authorization**: Upon 7 seconds without interaction, calls `/api/admin/auth/finalize` with timestamp proof and seamlessly opens the Admin Dashboard without intermediate redirect countdown screens.
+| Call Type | Price | 3-Line English Description |
+| :--- | :--- | :--- |
+| **Live Chat** | `₹1/Min` | Quick text assistance for instant queries, tech guidance, and step-by-step problem resolution. |
+| **Voice Call** | `₹3/Min` | Direct one-on-one voice conversation for detailed project discussion and clear guidance. |
+| **Video Call** | `₹7/Min` | Face-to-face screen sharing and interactive visual consultation for your tech requirements. |
+| **Custom Call** | `₹49/Min` | Choose your preferred call type, combine multiple services, and select your preferred date. |
 
-4. **Master UI Polish**:
-   - Liquid menu keyframe animations with progressive blur (8px to 0px), subtle scale, and cubic-bezier easing.
-   - Clean donation thank you popup with the large static party-popper emoji removed.
-   - Developer name ("Shiv Kumar") and business email (`FunzyTechBusiness@Gmail.com`) strictly preserved.
+---
+
+## 2. Card Content & Layout Hierarchy
+
+In each of the four cards in the 2×2 grid:
+1. **Top Row**: 
+   - Animated Icon (`animate-call-chat-loop`, `animate-call-voice-loop`, `animate-call-video-loop`, `animate-call-calendar-loop`) on the left.
+   - Price pill on the top right (`₹1/Min`, `₹3/Min`, `₹7/Min`, `₹49/Min`).
+2. **Title**:
+   - Positioned directly underneath the icon with bold font: `font-['Outfit',sans-serif] font-black text-[14px] sm:text-[15.5px] text-[#261508] leading-tight`.
+3. **Description**:
+   - Positioned directly below the title.
+   - Typography: `text-[11.5px] sm:text-[12px] text-[#7d644d] font-medium leading-[1.38] sm:leading-[1.4]`.
+   - Layout constraint: `line-clamp-3 min-h-[3.8em] sm:min-h-[4.2em]` to guarantee identical 3-line layout across mobile and desktop without visual shifts or empty space.
+4. **Card Proportions**:
+   - `min-h-[164px] sm:min-h-[178px]` square-like rounded rectangle (`rounded-[22px] sm:rounded-[24px]`).
+   - Smooth `scale-[1.035] sm:scale-[1.04]` scale-up animation on selection.
+
+---
+
+## 3. Preserved Features & Constraints
+
+- **Developer Identity**: Shiv Kumar & Funzy Tech preserved (`metadata.json`, email, admin credentials unchanged).
+- **Header**: Animated phone logo badge with "Choose Your Call Type" and "Select how you'd like to connect with us." preserved.
+- **Button**: Slow smooth fade-out continue button preserved.
+- **Navigation**: Clean transitions to Step 2 without cut icon in Step 2 preserved.
+- **Liquid Glass Design**: Dark liquid glass frosted aesthetic preserved.
+
+---
+
+## 4. Verification & Testing
+
+1. Validate syntax and types with `lint_applet` (`tsc --noEmit`).
+2. Validate bundling with `compile_applet`.
+3. Verify 2×2 grid appearance, text alignment, and line counts across viewport sizes.
