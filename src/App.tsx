@@ -3264,8 +3264,18 @@ export default function App() {
               );
             } catch {}
 
-            // Trigger ONLY when user arrives through referral link/QR code as requested
+            // Trigger ONLY when user arrives through referral link/QR code on standard routes (NOT on direct /pay route)
             setTimeout(() => {
+              const currentPath = (window.location.pathname || '').toLowerCase();
+              const currentSearch = (window.location.search || '').toLowerCase();
+              const currentHash = (window.location.hash || '').toLowerCase();
+              const isDirectPay =
+                currentPath.includes('/pay') ||
+                currentSearch.includes('route=pay') ||
+                currentSearch.includes('pay=1') ||
+                currentHash.includes('pay');
+              if (isDirectPay) return;
+
               setIsPromoPopupOpen(true);
               try {
                 confetti({

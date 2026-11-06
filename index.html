@@ -31,38 +31,52 @@
     <script>
       // Universal GitHub Pages & Path Normalizer:
       (function() {
-        var path = window.location.pathname;
-        var search = window.location.search;
-        var hash = window.location.hash;
+        var pathname = window.location.pathname || '';
+        var search = window.location.search || '';
+        var hash = window.location.hash || '';
 
-        // 1. If visited as /1-1 without trailing slash, redirect with slash to preserve query params and relative asset base
-        if (path === '/1-1') {
+        // 1. If visited as /1-1 without trailing slash (e.g. /1-1 or /1-1?ref=...),
+        // immediately normalize to /1-1/ with trailing slash so browser resolves relative paths properly
+        if (pathname === '/1-1') {
           window.location.replace('/1-1/' + search + hash);
           return;
         }
 
-        // 2. Dynamic Base Resolution for GitHub Pages subdirectory deployment (/1-1/ or /1-1/pay)
-        if (window.location.hostname.endsWith('github.io') && path.indexOf('/1-1') !== -1) {
-          var baseTag = document.createElement('base');
-          baseTag.href = '/1-1/';
-          document.head.appendChild(baseTag);
-        }
+        // 2. Synchronous <base> injection BEFORE any other assets load.
+        // If on github.io or path contains /1-1, canonical base is ALWAYS "/1-1/"!
+        // Otherwise on local dev / root hosting, base is "/".
+        var isSubdir = pathname.indexOf('/1-1') === 0 || window.location.hostname.indexOf('github.io') !== -1;
+        var baseHref = isSubdir ? '/1-1/' : '/';
+        document.write('<base href="' + baseHref + '">');
       })();
 
-      // Global early error catcher to prevent silent white screen
+      // Global early error catcher to prevent silent white screen if assets fail
       window.addEventListener('error', function(event) {
         var target = event.target;
-        if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
+        if (!target) return;
+        if ((target.tagName === 'SCRIPT' || target.tagName === 'LINK') && !target.hasAttribute('data-retried')) {
+          target.setAttribute('data-retried', 'true');
           var src = target.src || target.href;
-          console.warn('Asset load failed:', src);
-          if (src && !src.includes('/1-1/') && window.location.hostname.endsWith('github.io')) {
-            var newSrc = '/1-1/' + src.replace(/^[a-z]+:\/\/[^/]+\//, '');
+          console.warn('Asset load failed, retrying:', src);
+          if (src) {
+            var fileName = src.split('/').pop().split('?')[0];
+            var isGitHubPages = window.location.hostname.indexOf('github.io') !== -1 || window.location.pathname.indexOf('/1-1') === 0;
+            var retryUrl = isGitHubPages ? ('/1-1/assets/' + fileName) : ('/assets/' + fileName);
+
             if (target.tagName === 'SCRIPT') {
               var s = document.createElement('script');
               s.type = 'module';
               s.crossOrigin = 'anonymous';
-              s.src = newSrc;
+              s.setAttribute('data-retried', 'true');
+              s.src = retryUrl;
               document.head.appendChild(s);
+            } else if (target.tagName === 'LINK' && target.rel === 'stylesheet') {
+              var l = document.createElement('link');
+              l.rel = 'stylesheet';
+              l.crossOrigin = 'anonymous';
+              l.setAttribute('data-retried', 'true');
+              l.href = retryUrl;
+              document.head.appendChild(l);
             }
           }
         }
