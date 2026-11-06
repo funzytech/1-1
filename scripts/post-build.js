@@ -7,6 +7,35 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const distDir = path.resolve(rootDir, 'dist');
 
+const ALL_SECTION_AND_POPUP_ROUTES = [
+  'book-a-call',
+  'book-a-call/popup-1',
+  'book-a-call/popup-2',
+  'book-a-call/popup-3',
+  'book-a-call/popup-4',
+  'my-bookings',
+  'my-bookings/popup-1',
+  'track-booking',
+  'help-center',
+  'about-us',
+  'about-us/popup-1',
+  'contact-us',
+  'pay',
+  'pay/popup-1',
+  'referral',
+  'referral/popup-1',
+  'menu',
+  'admin',
+  'admin/popup-1',
+  'admin/popup-2',
+  'promo',
+  'shortcuts',
+  'tech-store',
+  'my-apps',
+  'my-links',
+  'ask-ai',
+];
+
 function copyRecursiveSync(src, dest) {
   const exists = fs.existsSync(src);
   const stats = exists && fs.statSync(src);
@@ -43,19 +72,25 @@ async function runPostBuild() {
   fs.writeFileSync(path.join(distDir, '.nojekyll'), '');
   fs.writeFileSync(path.join(rootDir, '.nojekyll'), '');
 
-  // 2. Prepare Pay section static pages
-  // This guarantees https://funzytech.github.io/1-1/pay serves HTTP 200 without 404
-  const distPayDir = path.join(distDir, 'pay');
-  const rootPayDir = path.join(rootDir, 'pay');
-  fs.mkdirSync(distPayDir, { recursive: true });
-  fs.mkdirSync(rootPayDir, { recursive: true });
+  // 2. Prepare static pages for every section & popup
+  // This guarantees direct URL access & refresh works without 404 on GitHub Pages
+  for (const route of ALL_SECTION_AND_POPUP_ROUTES) {
+    const distRouteDir = path.join(distDir, route);
+    const rootRouteDir = path.join(rootDir, route);
+    fs.mkdirSync(distRouteDir, { recursive: true });
+    fs.mkdirSync(rootRouteDir, { recursive: true });
 
-  fs.writeFileSync(path.join(distPayDir, 'index.html'), indexHtmlContent);
-  fs.writeFileSync(path.join(distDir, 'pay.html'), indexHtmlContent);
-  fs.writeFileSync(path.join(rootPayDir, 'index.html'), indexHtmlContent);
-  fs.writeFileSync(path.join(rootDir, 'pay.html'), indexHtmlContent);
+    fs.writeFileSync(path.join(distRouteDir, 'index.html'), indexHtmlContent);
+    fs.writeFileSync(path.join(rootRouteDir, 'index.html'), indexHtmlContent);
 
-  // 3. Create SPA 404 handler for deep links and query param preservation
+    // If top-level route (no slashes), also create .html file for clean URL servers
+    if (!route.includes('/')) {
+      fs.writeFileSync(path.join(distDir, `${route}.html`), indexHtmlContent);
+      fs.writeFileSync(path.join(rootDir, `${route}.html`), indexHtmlContent);
+    }
+  }
+
+  // 3. Create intelligent SPA 404 handler for deep links and query param preservation
   const spa404Content = `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -69,22 +104,17 @@ async function runPostBuild() {
         var search = window.location.search || '';
         var hash = window.location.hash || '';
 
-        // If user navigated to /pay or /1-1/pay
-        if (pathname.toLowerCase().indexOf('pay') !== -1) {
-          var delim = search ? '&' : '?';
-          var redirectPay = '/1-1/' + search + (search.indexOf('route=pay') === -1 ? delim + 'route=pay' : '') + hash;
-          window.location.replace(redirectPay);
-          return;
+        // Normalize repository prefix (/1-1)
+        var cleanPath = pathname;
+        if (cleanPath.indexOf('/1-1') === 0) {
+          cleanPath = cleanPath.slice(4);
         }
+        cleanPath = cleanPath.replace(/^\\/+/, '');
 
-        // If user accessed /1-1 without trailing slash
-        if (pathname === '/1-1') {
-          window.location.replace('/1-1/' + search + hash);
-          return;
-        }
-
-        // Universal SPA redirection back to repo base preserving query parameters
-        window.location.replace('/1-1/' + search + hash);
+        // Redirect back to repo root preserving route via query param 'route'
+        var delim = search ? '&' : '?';
+        var redirectUrl = '/1-1/' + search + (cleanPath ? delim + 'route=' + encodeURIComponent(cleanPath) : '') + hash;
+        window.location.replace(redirectUrl);
       })();
     </script>
     <meta http-equiv="refresh" content="0; url=/1-1/">
@@ -97,34 +127,26 @@ async function runPostBuild() {
   fs.writeFileSync(path.join(distDir, '404.html'), spa404Content);
   fs.writeFileSync(path.join(rootDir, '404.html'), spa404Content);
 
-  // 4. Ensure assets directory is synced to root and subdirectories
+  // 4. Ensure assets directory is synced to root and dist subdirectories
   const distAssetsDir = path.join(distDir, 'assets');
   if (fs.existsSync(distAssetsDir)) {
     const rootAssetsDir = path.join(rootDir, 'assets');
     fs.mkdirSync(rootAssetsDir, { recursive: true });
     copyRecursiveSync(distAssetsDir, rootAssetsDir);
-
-    // Also mirror to pay/assets in case relative resolution without base is used
-    const distPayAssetsDir = path.join(distPayDir, 'assets');
-    copyRecursiveSync(distAssetsDir, distPayAssetsDir);
-
-    const rootPayAssetsDir = path.join(rootPayDir, 'assets');
-    copyRecursiveSync(distAssetsDir, rootPayAssetsDir);
   }
 
-  // 5. Copy social preview images if present in public or dist
+  // 5. Copy social preview images if present in dist to root
   const previewImages = ['whatsapp-preview.jpg', 'whatsapp-preview.png', 'og-image-1200x630.jpg', 'og-image.png'];
   for (const img of previewImages) {
     const srcDist = path.join(distDir, img);
     if (fs.existsSync(srcDist)) {
       fs.copyFileSync(srcDist, path.join(rootDir, img));
-      fs.copyFileSync(srcDist, path.join(distPayDir, img));
     }
   }
 
   console.log('GitHub Pages post-build preparation completed successfully:');
-  console.log('- dist/pay/index.html & pay/index.html created');
-  console.log('- dist/404.html & 404.html created');
+  console.log(`- Generated static routes for ${ALL_SECTION_AND_POPUP_ROUTES.length} sections and popups`);
+  console.log('- dist/404.html & 404.html updated');
   console.log('- .nojekyll generated');
   console.log('- assets mirrored for all deployment targets');
 }

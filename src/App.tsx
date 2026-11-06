@@ -34,6 +34,14 @@ import {
   buildShareContent,
   recordReferralRedemption,
 } from './services/referralService';
+import {
+  getCleanRoute,
+  getRouteForState,
+  parseRoute,
+  updateBrowserUrl,
+  type ScreenId,
+} from './services/routerService';
+
 
 
 // Synthesize real crisp party-popper celebration sound via Web Audio API
@@ -749,45 +757,7 @@ export default function App() {
     }, 1800);
   };
 
-  // 1. Direct URL Route Detection for "/pay" (e.g. https://funzytech.github.io/1-1/pay or /pay or #/pay)
-  useEffect(() => {
-    const checkPayRoute = () => {
-      try {
-        const path = (window.location.pathname || '').toLowerCase();
-        const hash = (window.location.hash || '').toLowerCase();
-        const search = (window.location.search || '').toLowerCase();
-
-        const isPayPath =
-          path.endsWith('/pay') ||
-          path.endsWith('/pay/') ||
-          path.includes('/pay') ||
-          hash.includes('pay') ||
-          search.includes('route=pay') ||
-          search.includes('pay=1');
-
-        if (isPayPath) {
-          // Cleanly and directly open Donate Now section on page load without opening any other popup
-          setSelectedPresetAmount(null);
-          setCustomDonationAmount('');
-          setHasInteractedWithAmount(false);
-          setDonationAmountType('any');
-          setIsDonateModalOpen(true);
-          setIsDonateModalClosing(false);
-        }
-      } catch (err) {
-        console.warn('Pay route check failed:', err);
-      }
-    };
-
-    checkPayRoute();
-
-    window.addEventListener('popstate', checkPayRoute);
-    window.addEventListener('hashchange', checkPayRoute);
-    return () => {
-      window.removeEventListener('popstate', checkPayRoute);
-      window.removeEventListener('hashchange', checkPayRoute);
-    };
-  }, []);
+  // Central URL routing & section navigation is handled authority-wide by the router engine below.
 
   // 2. Silent Screenshot & Screen Recording Protection System:
   // Controlled silently in the background (no frontend alerts, error messages, or visual banners)
@@ -2460,30 +2430,7 @@ export default function App() {
   // Preserves exact layered navigation history across Home -> Menu -> Sub-modal -> Nested-modal
   // Returns user to exact parent screen with smooth IN & OUT animations on close
   // =========================================================================
-  type ScreenId =
-    | 'menu'
-    | 'about'
-    | 'donate'
-    | 'donate-thanks'
-    | 'booking'
-    | 'my-bookings'
-    | 'track'
-    | 'contact'
-    | 'auth'
-    | 'otp'
-    | 'oauth'
-    | 'avatar'
-    | 'signout-confirm'
-    | 'admin-password'
-    | 'admin-dashboard'
-    | 'promo'
-    | 'qr'
-    | 'shortcuts'
-    | 'tech-store'
-    | 'my-apps'
-    | 'my-links'
-    | 'ask-ai';
-
+  // ScreenId imported from routerService
   const navStackRef = useRef<ScreenId[]>([]);
 
   const getTopActiveScreen = useCallback((): ScreenId | null => {
@@ -2780,6 +2727,128 @@ export default function App() {
       }
     });
   }, [getTopActiveScreen, hideScreenWithAnimation, showScreen, triggerHaptic]);
+
+  // =========================================================================
+  // DYNAMIC URL ROUTING ENGINE & BROWSER HISTORY CONTROLLER
+  // Synchronizes browser URL with all sections and popups (PushState, PopState, Refresh)
+  // Fully preserves ?ref= parameters and handles direct link sharing and back/forward
+  // =========================================================================
+  const isNavigatingViaHistoryRef = useRef<boolean>(false);
+
+  const closeAllModals = useCallback(() => {
+    setIsBookingModalOpen(false);
+    setIsBookingModalClosing(false);
+    setIsMyBookingsModalOpen(false);
+    setIsMyBookingsModalClosing(false);
+    setIsTrackModalOpen(false);
+    setIsTrackModalClosing(false);
+    setIsAboutModalOpen(false);
+    setIsAboutModalClosing(false);
+    setIsContactFormOpen(false);
+    setIsContactFormClosing(false);
+    setIsDonateModalOpen(false);
+    setIsDonateModalClosing(false);
+    setShowDonationThankYou(false);
+    setIsDonationThankYouClosing(false);
+    setIsQrModalOpen(false);
+    setIsQrModalClosing(false);
+    setIsMenuRendered(false);
+    setIsMenuClosing(false);
+    setIsAdminPasswordModalOpen(false);
+    setIsAdminPasswordModalClosing(false);
+    setIsAdminDashboardOpen(false);
+    setIsAdminDashboardClosing(false);
+    setIsPromoPopupOpen(false);
+    setIsPromoPopupClosing(false);
+    setIsShortcutsModalOpen(false);
+    setIsShortcutsModalClosing(false);
+    setIsTechStoreOpen(false);
+    setIsMyAppsOpen(false);
+    setIsMyLinksOpen(false);
+    setIsAskAIOpen(false);
+    setIsAuthModalOpen(false);
+    setIsAuthModalClosing(false);
+    setIsOtpModalOpen(false);
+    setIsOtpModalClosing(false);
+    setIsSignOutConfirmOpen(false);
+    setIsSignOutConfirmClosing(false);
+    setIsAvatarModalOpen(false);
+    setIsAvatarModalClosing(false);
+    setIsOAuthWindowOpen(false);
+    setIsOAuthWindowClosing(false);
+    navStackRef.current = [];
+  }, []);
+
+  const applyRoute = useCallback((cleanRoute: string) => {
+    const parsed = parseRoute(cleanRoute);
+    if (!parsed.screen) {
+      closeAllModals();
+      return;
+    }
+
+    if (parsed.screen === 'booking') {
+      if (parsed.bookingStep === 2) {
+        setSelectedCallType((prev) => prev || 'live-chat');
+        setBookingStep(2);
+      } else {
+        setBookingStep(1);
+      }
+      setIsBookingModalOpen(true);
+      setIsBookingModalClosing(false);
+      return;
+    }
+
+    if (parsed.screen === 'donate') {
+      setSelectedPresetAmount(null);
+      setCustomDonationAmount('');
+      setHasInteractedWithAmount(false);
+      setDonationAmountType('any');
+      setIsDonateModalOpen(true);
+      setIsDonateModalClosing(false);
+      return;
+    }
+
+    // All other screens
+    showScreen(parsed.screen);
+  }, [closeAllModals, showScreen]);
+
+  // Initial Route Resolution on Mount & Popstate (Back/Forward) Listener
+  useEffect(() => {
+    const initialRoute = getCleanRoute();
+    if (initialRoute && initialRoute !== '/') {
+      isNavigatingViaHistoryRef.current = true;
+      applyRoute(initialRoute);
+      updateBrowserUrl(initialRoute, true);
+      setTimeout(() => {
+        isNavigatingViaHistoryRef.current = false;
+      }, 150);
+    } else {
+      updateBrowserUrl('/', true);
+    }
+
+    const handlePopState = () => {
+      isNavigatingViaHistoryRef.current = true;
+      const currentRoute = getCleanRoute();
+      applyRoute(currentRoute);
+      setTimeout(() => {
+        isNavigatingViaHistoryRef.current = false;
+      }, 150);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [applyRoute]);
+
+  // Automatic URL Synchronization whenever active screen or booking step updates
+  useEffect(() => {
+    if (isNavigatingViaHistoryRef.current) return;
+    const topActive = getTopActiveScreen();
+    const targetRoute = getRouteForState(topActive, bookingStep, Boolean(bookingConfirmedRecord));
+    updateBrowserUrl(targetRoute, false);
+  }, [getTopActiveScreen, bookingStep, bookingConfirmedRecord]);
+
 
   const handleItemClick = (id: string) => {
     triggerHaptic(14);
@@ -5612,7 +5681,7 @@ export default function App() {
                             setSelectedCallType((prev) => (prev === card.id ? null : card.id));
                           }}
                           aria-pressed={isSelected}
-                          className={`group relative rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 text-left transition-all duration-300 ease-out cursor-pointer active:scale-[0.98] border flex flex-col justify-start aspect-[1/0.98] ${
+                          className={`group relative rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 md:p-4.5 text-left transition-all duration-300 ease-out cursor-pointer active:scale-[0.98] border flex flex-col justify-start aspect-[1/0.98] md:aspect-auto md:min-h-[156px] ${
                             isSelected
                               ? 'bg-[#fffdf9]/95 border-amber-600/90 ring-2 ring-amber-500/45 shadow-[0_12px_28px_-4px_rgba(217,119,6,0.32)] scale-[1.035] sm:scale-[1.04] z-10'
                               : 'bg-white/65 hover:bg-white/85 border-white/85 shadow-2xs hover:shadow-xs hover:border-amber-200/50 scale-100 hover:scale-[1.01]'
@@ -5665,10 +5734,10 @@ export default function App() {
 
                           {/* 2. Title directly below the icon & 3. Description directly below the title */}
                           <div className="flex flex-col text-left w-full mt-2 sm:mt-2.5">
-                            <span className="font-['Outfit',sans-serif] font-black text-[13.5px] sm:text-[14.5px] text-[#261508] leading-tight tracking-tight">
+                            <span className="font-['Outfit',sans-serif] font-black text-[13.5px] sm:text-[14.5px] md:text-[15px] text-[#261508] leading-tight tracking-tight">
                               {card.title}
                             </span>
-                            <p className="text-[11px] sm:text-[11.5px] text-[#7d644d] font-medium leading-[1.38] mt-1 sm:mt-1">
+                            <p className="text-[11px] sm:text-[11.5px] md:text-[12.5px] lg:text-[13px] md:leading-[1.44] text-[#7d644d] font-medium leading-[1.38] mt-1 sm:mt-1">
                               {card.description}
                             </p>
                           </div>
@@ -6754,7 +6823,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handlePayNow}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#2c1708] via-[#45270f] to-[#2c1708] hover:from-black hover:to-black text-white font-['Outfit',sans-serif] font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all text-center cursor-pointer border border-[#8c6b4b]/40 select-none"
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#2c1708] via-[#45270f] to-[#2c1708] hover:from-black hover:to-black text-white font-['Outfit',sans-serif] font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all text-center cursor-pointer border border-[#8c6b4b]/40 select-none md:hidden"
                 >
                   Pay via UPI
                 </button>
