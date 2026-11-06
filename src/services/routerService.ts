@@ -1,6 +1,6 @@
 /**
- * Dynamic URL Router & Navigation System for Funzy Tech
- * Supports deep linking, browser back/forward, page refresh, and GitHub Pages (/1-1/)
+ * Intelligent Dynamic URL Router & Navigation System for FunzyTech
+ * Semantic stage naming, deep linking, browser back/forward, page refresh, and GitHub Pages (/1-1/)
  */
 
 export type ScreenId =
@@ -30,7 +30,7 @@ export type ScreenId =
 export interface ParsedRoute {
   screen: ScreenId | null;
   bookingStep?: number;
-  subPopup?: string;
+  stage?: string;
   isConfirmed?: boolean;
 }
 
@@ -87,55 +87,57 @@ export function getCleanRoute(): string {
 }
 
 /**
- * Converts the current application UI state into its exact canonical route URL
+ * Converts current application UI state into its short, semantic canonical route URL
  */
 export function getRouteForState(
   activeScreen: ScreenId | null,
   bookingStep: number = 1,
-  hasBookingConfirmed: boolean = false
+  hasBookingConfirmed: boolean = false,
+  bookingSubStage?: string
 ): string {
   if (!activeScreen) return '/';
 
   switch (activeScreen) {
     case 'booking':
-      if (hasBookingConfirmed) return '/book-a-call/popup-4';
-      if (bookingStep === 1) return '/book-a-call/popup-1';
-      if (bookingStep === 2) return '/book-a-call/popup-2';
-      if (bookingStep === 3) return '/book-a-call/popup-3';
-      return '/book-a-call';
+      if (hasBookingConfirmed) return '/book/confirmed';
+      if (bookingSubStage === 'duration') return '/book/duration';
+      if (bookingSubStage === 'details') return '/book/details';
+      if (bookingSubStage === 'confirm') return '/book/confirm';
+      if (bookingStep === 2) return '/book/schedule';
+      return '/book/type';
 
     case 'my-bookings':
-      return '/my-bookings';
+      return '/bookings';
 
     case 'otp':
-      return '/my-bookings/popup-1';
+      return '/bookings/verify';
 
     case 'track':
-      return '/track-booking';
+      return '/track';
 
     case 'about':
-      return '/about-us';
+      return '/about';
 
     case 'contact':
-      return '/contact-us';
+      return '/contact';
 
     case 'donate':
       return '/pay';
 
     case 'donate-thanks':
-      return '/pay/popup-1';
+      return '/pay/thanks';
 
     case 'qr':
-      return '/referral/popup-1';
+      return '/referral/qr';
 
     case 'menu':
       return '/menu';
 
     case 'admin-password':
-      return '/admin/popup-1';
+      return '/admin/login';
 
     case 'admin-dashboard':
-      return '/admin/popup-2';
+      return '/admin/dashboard';
 
     case 'promo':
       return '/promo';
@@ -147,16 +149,16 @@ export function getRouteForState(
       return '/shortcuts';
 
     case 'tech-store':
-      return '/tech-store';
+      return '/store';
 
     case 'my-apps':
-      return '/my-apps';
+      return '/apps';
 
     case 'my-links':
-      return '/my-links';
+      return '/links';
 
     case 'ask-ai':
-      return '/ask-ai';
+      return '/ai';
 
     default:
       return '/';
@@ -174,87 +176,96 @@ export function parseRoute(rawRoute: string): ParsedRoute {
     return { screen: null };
   }
 
-  // Book a Call & its distinct popups
-  if (clean.includes('book-a-call') || clean.includes('booking')) {
-    if (clean.includes('popup-4')) {
-      return { screen: 'booking', bookingStep: 2, isConfirmed: true };
-    }
-    if (clean.includes('popup-3')) {
-      return { screen: 'booking', bookingStep: 2, subPopup: 'popup-3' };
-    }
-    if (clean.includes('popup-2')) {
-      return { screen: 'booking', bookingStep: 2 };
-    }
-    if (clean.includes('popup-1')) {
-      return { screen: 'booking', bookingStep: 1 };
-    }
-    return { screen: 'booking', bookingStep: 1 };
-  }
-
-  // My Bookings
-  if (clean.includes('my-bookings') || clean.includes('mybookings')) {
-    if (clean.includes('popup-1') || clean.includes('otp')) {
+  // 1. Bookings (My Bookings)
+  if (clean === '/bookings' || clean.startsWith('/bookings/') || clean.startsWith('/my-booking')) {
+    if (clean.includes('verify') || clean.includes('otp') || clean.includes('popup-1')) {
       return { screen: 'otp' };
     }
     return { screen: 'my-bookings' };
   }
 
-  // Track Booking
-  if (clean.includes('track-booking') || clean.includes('track')) {
+  // 2. Book a Call stages
+  if (clean === '/book' || clean.startsWith('/book/') || clean === '/booking' || clean.startsWith('/booking/')) {
+    if (clean.includes('confirmed') || clean.includes('success') || clean.includes('popup-4')) {
+      return { screen: 'booking', bookingStep: 2, isConfirmed: true, stage: 'confirmed' };
+    }
+    if (clean.includes('confirm') || clean.includes('popup-3') || clean.includes('summary')) {
+      return { screen: 'booking', bookingStep: 2, stage: 'confirm' };
+    }
+    if (clean.includes('details') || clean.includes('contact-info')) {
+      return { screen: 'booking', bookingStep: 2, stage: 'details' };
+    }
+    if (clean.includes('duration')) {
+      return { screen: 'booking', bookingStep: 2, stage: 'duration' };
+    }
+    if (clean.includes('schedule') || clean.includes('time') || clean.includes('date') || clean.includes('popup-2')) {
+      return { screen: 'booking', bookingStep: 2, stage: 'schedule' };
+    }
+    if (clean.includes('type') || clean.includes('popup-1')) {
+      return { screen: 'booking', bookingStep: 1, stage: 'type' };
+    }
+    return { screen: 'booking', bookingStep: 1, stage: 'type' };
+  }
+
+  // 3. Track Booking
+  if (clean.startsWith('/track')) {
     return { screen: 'track' };
   }
 
-  // Help Center / About Us
-  if (clean.includes('help-center') || clean.includes('help')) {
+  // 4. Help Center
+  if (clean.startsWith('/help')) {
     return { screen: 'about' };
   }
 
-  if (clean.includes('about-us') || clean.includes('about')) {
-    if (clean.includes('popup-1')) {
+  // 5. About Us
+  if (clean.startsWith('/about')) {
+    if (clean.includes('donate') || clean.includes('pay') || clean.includes('popup-1')) {
       return { screen: 'donate' };
     }
     return { screen: 'about' };
   }
 
-  // Contact Us
-  if (clean.includes('contact-us') || clean.includes('contact')) {
+  // 6. Contact Us
+  if (clean.startsWith('/contact')) {
     return { screen: 'contact' };
   }
 
-  // Pay / Donate
-  if (clean.includes('pay') || clean.includes('donate')) {
-    if (clean.includes('popup-1') || clean.includes('thanks')) {
+  // 7. Pay / Donate
+  if (clean.startsWith('/pay') || clean.startsWith('/donate')) {
+    if (clean.includes('thanks') || clean.includes('popup-1')) {
       return { screen: 'donate-thanks' };
     }
     return { screen: 'donate' };
   }
 
-  // Referral / Share QR
-  if (clean.includes('referral') || clean.includes('share') || clean.includes('qr')) {
-    return { screen: 'qr', subPopup: 'popup-1' };
+  // 8. Referral / Share QR
+  if (clean.startsWith('/referral') || clean.startsWith('/share')) {
+    if (clean.includes('qr') || clean.includes('card') || clean.includes('popup-1')) {
+      return { screen: 'qr', stage: 'qr' };
+    }
+    return { screen: 'qr', stage: 'qr' };
   }
 
-  // Menu
-  if (clean.includes('menu')) {
-    return { screen: 'menu' };
-  }
-
-  // Admin
-  if (clean.includes('admin')) {
-    if (clean.includes('popup-2') || clean.includes('dashboard')) {
+  // 9. Admin
+  if (clean.startsWith('/admin')) {
+    if (clean.includes('dashboard') || clean.includes('popup-2')) {
       return { screen: 'admin-dashboard' };
+    }
+    if (clean.includes('login') || clean.includes('popup-1')) {
+      return { screen: 'admin-password' };
     }
     return { screen: 'admin-password' };
   }
 
-  // Secondary Features
-  if (clean.includes('promo')) return { screen: 'promo' };
-  if (clean.includes('shortcuts')) return { screen: 'shortcuts' };
-  if (clean.includes('tech-store')) return { screen: 'tech-store' };
-  if (clean.includes('my-apps')) return { screen: 'my-apps' };
-  if (clean.includes('my-links')) return { screen: 'my-links' };
-  if (clean.includes('ask-ai')) return { screen: 'ask-ai' };
-  if (clean.includes('auth') || clean.includes('sign-in')) return { screen: 'auth' };
+  // 10. Secondary Sections
+  if (clean.startsWith('/promo')) return { screen: 'promo' };
+  if (clean.startsWith('/menu')) return { screen: 'menu' };
+  if (clean.startsWith('/shortcuts')) return { screen: 'shortcuts' };
+  if (clean.startsWith('/store') || clean.startsWith('/tech-store')) return { screen: 'tech-store' };
+  if (clean.startsWith('/apps') || clean.startsWith('/my-apps')) return { screen: 'my-apps' };
+  if (clean.startsWith('/links') || clean.startsWith('/my-links')) return { screen: 'my-links' };
+  if (clean.startsWith('/ai') || clean.startsWith('/ask-ai')) return { screen: 'ask-ai' };
+  if (clean.startsWith('/auth') || clean.startsWith('/login') || clean.startsWith('/sign-in')) return { screen: 'auth' };
 
   return { screen: null };
 }

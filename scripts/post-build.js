@@ -8,6 +8,41 @@ const rootDir = path.resolve(__dirname, '..');
 const distDir = path.resolve(rootDir, 'dist');
 
 const ALL_SECTION_AND_POPUP_ROUTES = [
+  // Semantic Short Routes
+  'book',
+  'bookings',
+  'track',
+  'help',
+  'about',
+  'contact',
+  'pay',
+  'referral',
+  'admin',
+  'promo',
+  'menu',
+  'shortcuts',
+  'store',
+  'apps',
+  'links',
+  'ai',
+  'auth',
+
+  // Semantic Booking Stages
+  'book/type',
+  'book/duration',
+  'book/schedule',
+  'book/details',
+  'book/confirm',
+  'book/confirmed',
+
+  // Semantic Popups
+  'pay/thanks',
+  'bookings/verify',
+  'referral/qr',
+  'admin/login',
+  'admin/dashboard',
+
+  // Aliases & Backward Compatibility Routes
   'book-a-call',
   'book-a-call/popup-1',
   'book-a-call/popup-2',
@@ -20,16 +55,10 @@ const ALL_SECTION_AND_POPUP_ROUTES = [
   'about-us',
   'about-us/popup-1',
   'contact-us',
-  'pay',
   'pay/popup-1',
-  'referral',
   'referral/popup-1',
-  'menu',
-  'admin',
   'admin/popup-1',
   'admin/popup-2',
-  'promo',
-  'shortcuts',
   'tech-store',
   'my-apps',
   'my-links',
@@ -72,21 +101,36 @@ async function runPostBuild() {
   fs.writeFileSync(path.join(distDir, '.nojekyll'), '');
   fs.writeFileSync(path.join(rootDir, '.nojekyll'), '');
 
+  // Also mirror root index to 1-1/index.html
+  fs.mkdirSync(path.join(distDir, '1-1'), { recursive: true });
+  fs.mkdirSync(path.join(rootDir, '1-1'), { recursive: true });
+  fs.writeFileSync(path.join(distDir, '1-1', 'index.html'), indexHtmlContent);
+  fs.writeFileSync(path.join(rootDir, '1-1', 'index.html'), indexHtmlContent);
+
   // 2. Prepare static pages for every section & popup
   // This guarantees direct URL access & refresh works without 404 on GitHub Pages
   for (const route of ALL_SECTION_AND_POPUP_ROUTES) {
     const distRouteDir = path.join(distDir, route);
     const rootRouteDir = path.join(rootDir, route);
+    const dist11RouteDir = path.join(distDir, '1-1', route);
+    const root11RouteDir = path.join(rootDir, '1-1', route);
+
     fs.mkdirSync(distRouteDir, { recursive: true });
     fs.mkdirSync(rootRouteDir, { recursive: true });
+    fs.mkdirSync(dist11RouteDir, { recursive: true });
+    fs.mkdirSync(root11RouteDir, { recursive: true });
 
     fs.writeFileSync(path.join(distRouteDir, 'index.html'), indexHtmlContent);
     fs.writeFileSync(path.join(rootRouteDir, 'index.html'), indexHtmlContent);
+    fs.writeFileSync(path.join(dist11RouteDir, 'index.html'), indexHtmlContent);
+    fs.writeFileSync(path.join(root11RouteDir, 'index.html'), indexHtmlContent);
 
     // If top-level route (no slashes), also create .html file for clean URL servers
     if (!route.includes('/')) {
       fs.writeFileSync(path.join(distDir, `${route}.html`), indexHtmlContent);
       fs.writeFileSync(path.join(rootDir, `${route}.html`), indexHtmlContent);
+      fs.writeFileSync(path.join(distDir, '1-1', `${route}.html`), indexHtmlContent);
+      fs.writeFileSync(path.join(rootDir, '1-1', `${route}.html`), indexHtmlContent);
     }
   }
 
@@ -145,7 +189,7 @@ async function runPostBuild() {
   }
 
   console.log('GitHub Pages post-build preparation completed successfully:');
-  console.log(`- Generated static routes for ${ALL_SECTION_AND_POPUP_ROUTES.length} sections and popups`);
+  console.log(`- Generated static routes for ${ALL_SECTION_AND_POPUP_ROUTES.length} semantic sections and popups`);
   console.log('- dist/404.html & 404.html updated');
   console.log('- .nojekyll generated');
   console.log('- assets mirrored for all deployment targets');

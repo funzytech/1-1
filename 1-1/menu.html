@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Funzy Tech | Book a Call</title>
+    <meta name="description" content="Your One-to-One Tech Consultation Starts Here." />
+
+    <!-- Open Graph / WhatsApp Link Preview Metadata (Exact Specifications) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Funzy Tech" />
+    <meta property="og:title" content="Funzy Tech | Book a Call" />
+    <meta property="og:description" content="Your One-to-One Tech Consultation Starts Here." />
+    <meta property="og:url" content="https://funzytech.github.io/1-1/" />
+    <link rel="canonical" href="https://funzytech.github.io/1-1/" />
+    
+    <!-- Primary WhatsApp & Social Sharing Image (Absolute Public HTTPS URLs) -->
+    <meta property="og:image" content="https://funzytech.github.io/1-1/whatsapp-preview.jpg" />
+    <meta property="og:image:secure_url" content="https://funzytech.github.io/1-1/whatsapp-preview.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Funzy Tech | Book a Call" />
+
+    <!-- Twitter / X Card Metadata -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Funzy Tech | Book a Call" />
+    <meta name="twitter:description" content="Your One-to-One Tech Consultation Starts Here." />
+    <meta name="twitter:image" content="https://funzytech.github.io/1-1/whatsapp-preview.jpg" />
+    <meta name="twitter:image:alt" content="Funzy Tech | Book a Call" />
+    <script>
+      // Universal GitHub Pages & Path Normalizer:
+      (function() {
+        var pathname = window.location.pathname || '';
+        var search = window.location.search || '';
+        var hash = window.location.hash || '';
+
+        // 1. If visited as /1-1 without trailing slash (e.g. /1-1 or /1-1?ref=...),
+        // immediately normalize to /1-1/ with trailing slash so browser resolves relative paths properly
+        if (pathname === '/1-1') {
+          window.location.replace('/1-1/' + search + hash);
+          return;
+        }
+
+        // 2. Synchronous <base> injection BEFORE any other assets load.
+        // If on github.io or path contains /1-1, canonical base is ALWAYS "/1-1/"!
+        // Otherwise on local dev / root hosting, base is "/".
+        var isSubdir = pathname.indexOf('/1-1') === 0 || window.location.hostname.indexOf('github.io') !== -1;
+        var baseHref = isSubdir ? '/1-1/' : '/';
+        document.write('<base href="' + baseHref + '">');
+      })();
+
+      // Global early error catcher to prevent silent white screen if assets fail
+      window.addEventListener('error', function(event) {
+        var target = event.target;
+        if (!target) return;
+        if ((target.tagName === 'SCRIPT' || target.tagName === 'LINK') && !target.hasAttribute('data-retried')) {
+          target.setAttribute('data-retried', 'true');
+          var src = target.src || target.href;
+          console.warn('Asset load failed, retrying:', src);
+          if (src) {
+            var fileName = src.split('/').pop().split('?')[0];
+            var isGitHubPages = window.location.hostname.indexOf('github.io') !== -1 || window.location.pathname.indexOf('/1-1') === 0;
+            var retryUrl = isGitHubPages ? ('/1-1/assets/' + fileName) : ('/assets/' + fileName);
+
+            if (target.tagName === 'SCRIPT') {
+              var s = document.createElement('script');
+              s.type = 'module';
+              s.crossOrigin = 'anonymous';
+              s.setAttribute('data-retried', 'true');
+              s.src = retryUrl;
+              document.head.appendChild(s);
+            } else if (target.tagName === 'LINK' && target.rel === 'stylesheet') {
+              var l = document.createElement('link');
+              l.rel = 'stylesheet';
+              l.crossOrigin = 'anonymous';
+              l.setAttribute('data-retried', 'true');
+              l.href = retryUrl;
+              document.head.appendChild(l);
+            }
+          }
+        }
+      }, true);
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Bebas+Neue&family=Cinzel:wght@700;800;900&family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Oswald:wght@600;700&family=Outfit:wght@400;500;600;700;800&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=Poppins:wght@600;700&family=Sacramento&family=Satisfy&family=Space+Grotesk:wght@700&family=Syne:wght@700;800&display=swap" rel="stylesheet" crossorigin="anonymous" />
+    <script type="module" crossorigin src="./assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index.css">
+  </head>
+  <body style="background-color: #d9c4a2; margin: 0; padding: 0;">
+    <div id="root"></div>
+  </body>
+</html>
+

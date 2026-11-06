@@ -288,12 +288,15 @@ export interface BookingRecord {
   email: string;
   date: string;
   time: string;
+  duration?: string;
   topic: string;
   status: 'Confirmed' | 'Completed' | 'Cancelled';
   createdAt: string;
   referralCode?: string;
   discountPercentage?: number;
 }
+
+const AVAILABLE_DURATIONS = ['15 Mins', '30 Mins', '45 Mins', '60 Mins'];
 
 const AVAILABLE_DATES = [
   'Today, Oct 10',
@@ -2151,6 +2154,8 @@ export default function App() {
   // Booking Form State
   const [bookingDate, setBookingDate] = useState<string>('Tomorrow, Oct 11');
   const [bookingTime, setBookingTime] = useState<string>('11:30 AM');
+  const [bookingDuration, setBookingDuration] = useState<string>('30 Mins');
+  const [bookingStage, setBookingStage] = useState<'type' | 'duration' | 'schedule' | 'details' | 'confirm' | 'confirmed'>('type');
   const [bookingName, setBookingName] = useState<string>('');
   const [bookingEmail, setBookingEmail] = useState<string>('');
   const [bookingTopic, setBookingTopic] = useState<string>('Digital Architecture Consultation');
@@ -2243,6 +2248,7 @@ export default function App() {
       email: finalEmail,
       date: bookingDate,
       time: bookingTime,
+      duration: bookingDuration,
       topic: bookingTopic.trim() || 'Digital Architecture & Creative Tech Call',
       status: 'Confirmed',
       createdAt: new Date().toISOString().split('T')[0],
@@ -2253,6 +2259,7 @@ export default function App() {
     const updated = [newBooking, ...bookings];
     saveBookings(updated);
     setBookingConfirmedRecord(newBooking);
+    setBookingStage('confirmed');
     setBookingFormError('');
     showToast({
       title: 'Booking Confirmed! 🎉',
@@ -2787,11 +2794,43 @@ export default function App() {
     }
 
     if (parsed.screen === 'booking') {
-      if (parsed.bookingStep === 2) {
+      if (parsed.stage === 'confirmed' || parsed.isConfirmed) {
         setSelectedCallType((prev) => prev || 'live-chat');
         setBookingStep(2);
+        setBookingStage('confirmed');
+        setBookingConfirmedRecord((prev) => {
+          if (prev) return prev;
+          let latest: BookingRecord | null = null;
+          try {
+            const raw = localStorage.getItem('ft_bookings_guest');
+            if (raw) {
+              const list = JSON.parse(raw);
+              if (Array.isArray(list) && list.length > 0) {
+                latest = list[0];
+              }
+            }
+          } catch {}
+          return latest || {
+            id: 'FT-2026-8492',
+            name: isLoggedIn ? userName : 'Consultation Guest',
+            email: isLoggedIn ? userEmail : 'guest@funzytech.com',
+            date: 'Tomorrow, Oct 11',
+            time: '11:30 AM',
+            duration: '30 Mins',
+            topic: 'Digital Architecture Consultation',
+            status: 'Confirmed',
+            createdAt: new Date().toISOString().split('T')[0],
+          };
+        });
+      } else if (parsed.bookingStep === 2 || parsed.stage === 'schedule' || parsed.stage === 'duration' || parsed.stage === 'details' || parsed.stage === 'confirm') {
+        setSelectedCallType((prev) => prev || 'live-chat');
+        setBookingStep(2);
+        setBookingStage((parsed.stage as any) || 'schedule');
+        setBookingConfirmedRecord(null);
       } else {
         setBookingStep(1);
+        setBookingStage('type');
+        setBookingConfirmedRecord(null);
       }
       setIsBookingModalOpen(true);
       setIsBookingModalClosing(false);
@@ -2810,7 +2849,7 @@ export default function App() {
 
     // All other screens
     showScreen(parsed.screen);
-  }, [closeAllModals, showScreen]);
+  }, [closeAllModals, showScreen, isLoggedIn, userName, userEmail]);
 
   // Initial Route Resolution on Mount & Popstate (Back/Forward) Listener
   useEffect(() => {
@@ -2845,9 +2884,14 @@ export default function App() {
   useEffect(() => {
     if (isNavigatingViaHistoryRef.current) return;
     const topActive = getTopActiveScreen();
-    const targetRoute = getRouteForState(topActive, bookingStep, Boolean(bookingConfirmedRecord));
+    const targetRoute = getRouteForState(
+      topActive,
+      bookingStep,
+      Boolean(bookingConfirmedRecord),
+      bookingStage
+    );
     updateBrowserUrl(targetRoute, false);
-  }, [getTopActiveScreen, bookingStep, bookingConfirmedRecord]);
+  }, [getTopActiveScreen, bookingStep, bookingConfirmedRecord, bookingStage]);
 
 
   const handleItemClick = (id: string) => {
@@ -2865,6 +2909,8 @@ export default function App() {
         openScreenWithHistory('ask-ai', 'menu');
       } else if (id === 'book-a-call') {
         setBookingConfirmedRecord(null);
+        setBookingStage('type');
+        setBookingStep(1);
         setBookingFormError('');
         openScreenWithHistory('booking', 'menu');
       } else if (id === 'my-bookings') {
@@ -5760,6 +5806,7 @@ export default function App() {
                           setBookingTopic(found.title + ' Consultation');
                         }
                         setBookingStep(2);
+                        setBookingStage('duration');
                         setTimeout(() => {
                           setIsTransitioningStep(false);
                         }, 350);
@@ -5817,6 +5864,7 @@ export default function App() {
                           setIsTransitioningStep(true);
                           triggerHaptic(10);
                           setBookingStep(1);
+                          setBookingStage('type');
                           setTimeout(() => {
                             setIsTransitioningStep(false);
                           }, 350);
@@ -5872,6 +5920,12 @@ export default function App() {
                       <span className="text-[#7d644d] font-semibold">Date & Time</span>
                       <span className="font-bold text-[#261508]">
                         {bookingConfirmedRecord.date} • {bookingConfirmedRecord.time}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#7d644d] font-semibold">Duration</span>
+                      <span className="font-bold text-[#261508]">
+                        {bookingConfirmedRecord.duration || '30 Mins'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
@@ -5936,16 +5990,45 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* Select Duration Chips */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">1. Select Call Duration</label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {AVAILABLE_DURATIONS.map((dur) => (
+                        <button
+                          key={dur}
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic(10);
+                            setBookingDuration(dur);
+                            setBookingStage('duration');
+                          }}
+                          className={`py-2 px-1 rounded-xl text-[11px] font-bold border transition-all text-center cursor-pointer ${
+                            bookingDuration === dur
+                              ? 'bg-[#2c1708] text-white border-[#2c1708] shadow-xs'
+                              : 'bg-white/60 hover:bg-white text-[#3d2714] border-white/80'
+                          }`}
+                        >
+                          {dur}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Select Date Chips */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">1. Select Available Date</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">2. Select Available Date</label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                       {AVAILABLE_DATES.map((d) => (
                         <button
                           key={d}
                           type="button"
-                          onClick={() => setBookingDate(d)}
-                          className={`px-3 py-2 rounded-xl text-[11.5px] font-bold border transition-all text-center ${
+                          onClick={() => {
+                            triggerHaptic(10);
+                            setBookingDate(d);
+                            setBookingStage('schedule');
+                          }}
+                          className={`px-3 py-2 rounded-xl text-[11.5px] font-bold border transition-all text-center cursor-pointer ${
                             bookingDate === d
                               ? 'bg-[#2c1708] text-white border-[#2c1708] shadow-xs'
                               : 'bg-white/60 hover:bg-white text-[#3d2714] border-white/80'
@@ -5959,14 +6042,18 @@ export default function App() {
 
                   {/* Select Time Slot Chips */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">2. Select Time Slot</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">3. Select Time Slot</label>
                     <div className="grid grid-cols-3 gap-1.5">
                       {AVAILABLE_TIMES.map((t) => (
                         <button
                           key={t}
                           type="button"
-                          onClick={() => setBookingTime(t)}
-                          className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all text-center ${
+                          onClick={() => {
+                            triggerHaptic(10);
+                            setBookingTime(t);
+                            setBookingStage('schedule');
+                          }}
+                          className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all text-center cursor-pointer ${
                             bookingTime === t
                               ? 'bg-[#2c1708] text-white border-[#2c1708] shadow-xs'
                               : 'bg-white/60 hover:bg-white text-[#3d2714] border-white/80'
@@ -5980,12 +6067,16 @@ export default function App() {
 
                   {/* Name Input */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">3. Your Full Name</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">4. Your Full Name</label>
                     <input
                       type="text"
                       required
                       value={bookingName || (isLoggedIn ? userName : '')}
-                      onChange={(e) => setBookingName(e.target.value)}
+                      onFocus={() => setBookingStage('details')}
+                      onChange={(e) => {
+                        setBookingName(e.target.value);
+                        setBookingStage('details');
+                      }}
                       placeholder="e.g. Alex Morgan"
                       className="w-full rounded-xl px-3.5 py-2.5 text-xs font-semibold bg-white/85 border border-white/95 text-[#261508] focus:outline-none focus:ring-2 focus:ring-[#73593f]/30"
                     />
@@ -5993,12 +6084,16 @@ export default function App() {
 
                   {/* Email Input */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">4. Your Email Address</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">5. Your Email Address</label>
                     <input
                       type="email"
                       required
                       value={bookingEmail || (isLoggedIn ? userEmail : '')}
-                      onChange={(e) => setBookingEmail(e.target.value)}
+                      onFocus={() => setBookingStage('details')}
+                      onChange={(e) => {
+                        setBookingEmail(e.target.value);
+                        setBookingStage('details');
+                      }}
                       placeholder="e.g. alex@company.com"
                       className="w-full rounded-xl px-3.5 py-2.5 text-xs font-semibold bg-white/85 border border-white/95 text-[#261508] focus:outline-none focus:ring-2 focus:ring-[#73593f]/30"
                     />
@@ -6009,11 +6104,15 @@ export default function App() {
 
                   {/* Topic Notes */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">5. Topic or Project Notes</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#634932]">6. Topic or Project Notes</label>
                     <textarea
                       rows={2}
                       value={bookingTopic}
-                      onChange={(e) => setBookingTopic(e.target.value)}
+                      onFocus={() => setBookingStage('details')}
+                      onChange={(e) => {
+                        setBookingTopic(e.target.value);
+                        setBookingStage('details');
+                      }}
                       placeholder="What would you like to discuss? (e.g. Liquid glass UI, architecture consultation)"
                       className="w-full rounded-xl px-3.5 py-2 text-xs font-medium bg-white/85 border border-white/95 text-[#261508] focus:outline-none focus:ring-2 focus:ring-[#73593f]/30 resize-none"
                     />
@@ -6021,7 +6120,10 @@ export default function App() {
 
                   {/* Referral / Promo Code Section */}
                   {referralDiscount && !referralDiscount.isSelfReferral ? (
-                    <div className="flex flex-col gap-2 p-3 rounded-xl bg-amber-500/15 border border-amber-500/35 text-[#3d2510] text-xs shadow-2xs">
+                    <div 
+                      onMouseEnter={() => setBookingStage('confirm')}
+                      className="flex flex-col gap-2 p-3 rounded-xl bg-amber-500/15 border border-amber-500/35 text-[#3d2510] text-xs shadow-2xs"
+                    >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-base">🏷️</span>
@@ -6082,9 +6184,11 @@ export default function App() {
                         <input
                           type="text"
                           value={manualCouponInput}
+                          onFocus={() => setBookingStage('confirm')}
                           onChange={(e) => {
                             setManualCouponInput(e.target.value);
                             setManualCouponStatus('');
+                            setBookingStage('confirm');
                           }}
                           placeholder="e.g. FT-A7K92"
                           className="flex-1 rounded-xl px-3 py-2 text-xs font-semibold bg-white/85 border border-white/95 uppercase placeholder:normal-case text-[#261508] focus:outline-none focus:ring-2 focus:ring-[#73593f]/30"
@@ -6120,6 +6224,8 @@ export default function App() {
 
                   <button
                     type="submit"
+                    onMouseEnter={() => setBookingStage('confirm')}
+                    onFocus={() => setBookingStage('confirm')}
                     className="mt-1 w-full py-3 rounded-xl bg-gradient-to-r from-[#3e2714] to-[#261508] text-white font-bold text-xs sm:text-sm shadow-md hover:brightness-110 active:scale-98 transition-all cursor-pointer border border-white/20"
                   >
                     Confirm Booking Now →
