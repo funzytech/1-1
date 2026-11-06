@@ -5548,7 +5548,7 @@ export default function App() {
                 <SwipeableModalCard 
                   onClose={() => closeScreenWithHistory('booking')}
                   isClosing={isBookingModalClosing}
-                  className={`liquid-glass-menu relative w-full max-w-[500px] sm:max-w-[530px] rounded-[28px] p-4.5 sm:p-5.5 shadow-[0_24px_50px_-12px_rgba(95,70,40,0.38)] overflow-hidden flex flex-col ${
+                  className={`liquid-glass-menu relative w-full max-w-[420px] sm:max-w-[440px] rounded-[28px] p-4 sm:p-5 shadow-[0_24px_50px_-12px_rgba(95,70,40,0.38)] overflow-hidden flex flex-col ${
                     isBookingModalClosing ? 'animate-contact-modal-close' : 'animate-contact-modal'
                   }`}
                 >
@@ -5588,8 +5588,8 @@ export default function App() {
                     </button>
                   </div>
 
-                  {/* Four Call Type Cards in 2×2 Grid — Proper Balanced Rounded Squares */}
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4 my-2.5">
+                  {/* Four Call Type Cards in 2×2 Grid — Proper Balanced Rounded Squares (Desktop matches Mobile) */}
+                  <div className="grid grid-cols-2 gap-3 sm:gap-3.5 my-2.5">
                     {CALL_TYPES.map((card) => {
                       const isSelected = selectedCallType === card.id;
                       return (
@@ -5602,7 +5602,7 @@ export default function App() {
                             setSelectedCallType((prev) => (prev === card.id ? null : card.id));
                           }}
                           aria-pressed={isSelected}
-                          className={`group relative rounded-[22px] sm:rounded-[26px] p-3.5 sm:p-4 text-left transition-all duration-300 ease-out cursor-pointer active:scale-[0.98] border flex flex-col justify-between aspect-[1/0.98] sm:aspect-square ${
+                          className={`group relative rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 text-left transition-all duration-300 ease-out cursor-pointer active:scale-[0.98] border flex flex-col justify-start aspect-[1/0.98] ${
                             isSelected
                               ? 'bg-[#fffdf9]/95 border-amber-600/90 ring-2 ring-amber-500/45 shadow-[0_12px_28px_-4px_rgba(217,119,6,0.32)] scale-[1.035] sm:scale-[1.04] z-10'
                               : 'bg-white/65 hover:bg-white/85 border-white/85 shadow-2xs hover:shadow-xs hover:border-amber-200/50 scale-100 hover:scale-[1.01]'
@@ -5611,29 +5611,29 @@ export default function App() {
                           {/* 1. Icon at the top (with price pill at top-right) */}
                           <div className="flex items-start justify-between w-full">
                             {/* Animated Icon */}
-                            <div className={`flex h-8.5 w-8.5 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl border shadow-2xs transition-all duration-300 ${
+                            <div className={`flex h-8.5 w-8.5 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl border shadow-2xs transition-all duration-300 ${
                               isSelected 
                                 ? 'bg-amber-100/95 border-amber-300 text-amber-950 scale-105' 
                                 : 'bg-amber-100/70 border-amber-200/60 text-[#4a321f] group-hover:scale-105'
                             } ${card.animationClass}`}>
                               {card.id === 'live-chat' && (
-                                <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg className="h-4 w-4 sm:h-4.5 sm:w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                                 </svg>
                               )}
                               {card.id === 'voice-call' && (
-                                <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg className="h-4 w-4 sm:h-4.5 sm:w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                                 </svg>
                               )}
                               {card.id === 'video-call' && (
-                                <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg className="h-4 w-4 sm:h-4.5 sm:w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                   <polygon points="23 7 16 12 23 17 23 7" />
                                   <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                                 </svg>
                               )}
                               {(card.id === 'custom-call' || card.id === 'scheduled-call') && (
-                                <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg className="h-4 w-4 sm:h-4.5 sm:w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                                   <line x1="16" y1="2" x2="16" y2="6" />
                                   <line x1="8" y1="2" x2="8" y2="6" />
@@ -5644,7 +5644,7 @@ export default function App() {
                             </div>
 
                             {/* Price positioned in top-right corner pill */}
-                            <span className={`shrink-0 font-['Outfit',sans-serif] font-black text-[11px] sm:text-[12.5px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border transition-colors ${
+                            <span className={`shrink-0 font-['Outfit',sans-serif] font-black text-[11px] sm:text-[12px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border transition-colors ${
                               isSelected
                                 ? 'bg-amber-100/95 border-amber-300 text-amber-950 shadow-2xs'
                                 : 'bg-amber-50/90 border-amber-200/70 text-amber-900'
@@ -5655,10 +5655,10 @@ export default function App() {
 
                           {/* 2. Title directly below the icon & 3. Description directly below the title */}
                           <div className="flex flex-col text-left w-full mt-2 sm:mt-2.5">
-                            <span className="font-['Outfit',sans-serif] font-black text-[13.5px] sm:text-[15.5px] text-[#261508] leading-tight tracking-tight">
+                            <span className="font-['Outfit',sans-serif] font-black text-[13.5px] sm:text-[14.5px] text-[#261508] leading-tight tracking-tight">
                               {card.title}
                             </span>
-                            <p className="text-[11px] sm:text-[12px] text-[#7d644d] font-medium leading-[1.38] sm:leading-[1.44] mt-1 sm:mt-1.5">
+                            <p className="text-[11px] sm:text-[11.5px] text-[#7d644d] font-medium leading-[1.38] mt-1 sm:mt-1">
                               {card.description}
                             </p>
                           </div>
